@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { Redirect } from "react-router";
+import { Redirect, useHistory } from "react-router";
 import styled from "styled-components";
 import ImageUpload from "../components/ImageUpload";
 import CategoryServices from "../services/category.services";
@@ -287,6 +287,19 @@ const CellGroup = styled.div`
   flex: 1;
 `;
 
+interface SelectProp {
+  id: number;
+  valueIDs: number[];
+  isRequired: boolean;
+  name: string;
+}
+
+interface TypingProp {
+  id: number;
+  value: string;
+  name: string;
+}
+
 const initialValues: {
   productName: string;
   description: string;
@@ -299,23 +312,17 @@ const initialValues: {
   length: number;
   sku: string;
   firstVariant: {
-    name: string;
+    name?: string;
     options: string[];
   };
   secondVariant: {
-    name: string;
+    name?: string;
     options: string[];
   };
   combinations: { price: number; stock: number; sku: string }[];
   hasSecondVariant: boolean;
-  typingProperties: {
-    id: number;
-    value: string;
-  }[];
-  selectProperties: {
-    id: number;
-    valueIDs: number[];
-  }[];
+  typingProperties: TypingProp[];
+  selectProperties: SelectProp[];
 } = {
   productName: "",
   description: "",
@@ -335,20 +342,10 @@ const initialValues: {
     name: "",
     options: [""],
   },
-  combinations: [{ price: 0, stock: 0, sku: "" }],
+  combinations: [],
   hasSecondVariant: false,
-  typingProperties: [
-    {
-      id: 0,
-      value: "",
-    },
-  ],
-  selectProperties: [
-    {
-      id: 0,
-      valueIDs: [0],
-    },
-  ],
+  typingProperties: [{ id: 0, value: "", name: "" }],
+  selectProperties: [{ id: 0, valueIDs: [0], isRequired: false, name: "" }],
 };
 
 const AddProductPage: React.FC = () => {
@@ -360,26 +357,32 @@ const AddProductPage: React.FC = () => {
   const [hasVariant, setHasVariant] = useState(false);
   const [hasSecondVariant, setHasSecondVariant] = useState(false);
   const [images, setImages] = useState<{ id: number; file: File }[]>([]);
+  const history = useHistory();
 
   useEffect(() => {
-    CategoryServices.getSelectProperties(selectedCategory.id).then(
-      (response) => {
-        setSelectProps(response.data);
-        initialValues.selectProperties = response.data.map((item) => ({
-          id: item.id,
-          valueIDs: [],
-        }));
-      }
-    );
-    CategoryServices.getTypingProperties(selectedCategory.id).then(
-      (response) => {
-        setTypingProps(response.data);
-        initialValues.typingProperties = response.data.map((item) => ({
-          id: item.id,
-          value: "",
-        }));
-      }
-    );
+    if (selectedCategory.id !== 0) {
+      CategoryServices.getSelectProperties(selectedCategory.id).then(
+        (response) => {
+          setSelectProps(response.data);
+          initialValues.selectProperties = response.data.map((item) => ({
+            id: item.id,
+            valueIDs: [],
+            isRequired: item.isRequired,
+            name: item.name,
+          }));
+        }
+      );
+      CategoryServices.getTypingProperties(selectedCategory.id).then(
+        (response) => {
+          setTypingProps(response.data);
+          initialValues.typingProperties = response.data.map((item) => ({
+            id: item.id,
+            value: "",
+            name: item.name,
+          }));
+        }
+      );
+    }
   }, [selectedCategory]);
 
   let imgUpload: number[] = [];
@@ -390,10 +393,16 @@ const AddProductPage: React.FC = () => {
   const AddProductSchema = Yup.object().shape({
     productName: Yup.string().required("Không được để trống ô"),
     description: Yup.string().required("Không được để trống ô"),
-    price: Yup.number()
-      .required("Không được để trống ô")
-      .min(1000, "Giá trị phải ít nhất 1,000"),
-    stock: Yup.number().required("Không được để trống ô"),
+    price: Yup.number().when("hasVariant", {
+      is: () => !hasVariant,
+      then: Yup.number()
+        .required("Không được để trống ô")
+        .min(1000, "Giá trị phải ít nhất 1,000"),
+    }),
+    stock: Yup.number().when("hasVariant", {
+      is: () => !hasVariant,
+      then: Yup.number().required("Không được để trống ô"),
+    }),
     weight: Yup.number()
       .required("Không được để trống ô")
       .min(1, "Vui lòng nhập vào giá trị giữa 0 và 1000000")
@@ -444,9 +453,29 @@ const AddProductPage: React.FC = () => {
           return true;
         }),
     }),
+    selectProperties: Yup.array().of(
+      Yup.object().shape({
+        name: Yup.string(),
+        isRequired: Yup.boolean(),
+        valueIDs: Yup.array().when("isRequired", {
+          is: true,
+          then: Yup.array()
+            .of(Yup.number())
+            .test("length", "", function (value) {
+              if (value?.length === 0)
+                return this.createError({
+                  path: this.path,
+                  message: "Vui lòng chọn " + this.parent.name,
+                });
+              return true;
+            }),
+          otherwise: Yup.array().of(Yup.number()),
+        }),
+      })
+    ),
   });
 
-  return true ? (
+  return selectedCategory.id !== 0 ? (
     <Formik
       initialValues={initialValues}
       onSubmit={(values) => {
@@ -454,7 +483,7 @@ const AddProductPage: React.FC = () => {
           images.length === 0 ||
           images.findIndex((image) => image.id === 0) === -1
         )
-          alert("Địt mẹ chưa chọn ảnh bìa kìa");
+          alert("Chưa chọn ảnh bìa");
         else {
           let formData = new FormData();
           images.forEach((image) => {
@@ -465,19 +494,26 @@ const AddProductPage: React.FC = () => {
           values.categoryId = selectedCategory.id;
           formData.append(
             "data",
-            JSON.stringify({ ...values, name: values.productName })
+            JSON.stringify({
+              ...values,
+              name: values.productName,
+              hasVariant,
+              hasSecondVariant,
+            })
           );
 
-          ProductServices.addProduct(formData).then((response) => {
-            console.log(response.data);
-          });
+          ProductServices.addProduct(formData)
+            .then(() => {
+              history.push("/");
+            })
+            .catch(() => alert("Lỗi api rùi"));
         }
       }}
       validationSchema={AddProductSchema}
       validateOnChange={false}
       validateOnBlur={true}
     >
-      {({ errors, values, setValues, setErrors, touched }) => (
+      {({ errors, values, setValues, setErrors, touched, setFieldValue }) => (
         <Form autoComplete="false">
           <Container>
             <Box>
@@ -533,43 +569,52 @@ const AddProductPage: React.FC = () => {
               <BoxContent>
                 <GridContainer>
                   {selectProps.length > 0 &&
-                    selectProps.map((item, index) => (
-                      <EditRow key={item.id}>
-                        <label>
-                          {item.isRequired && "* "}
-                          {item.name}
-                        </label>
-                        {item.hasMultiValues ? (
-                          <Select
-                            options={item.values}
-                            placeholder="Vui lòng chọn"
-                            isMulti={true}
-                            onChange={(e) => {
-                              let list = [...values.selectProperties];
-                              let valueIDs = e.map((item) => item.value);
-                              list[index] = {
-                                id: item.id,
-                                valueIDs: valueIDs,
-                              };
-                              setValues({ ...values, selectProperties: list });
-                            }}
-                          ></Select>
-                        ) : (
-                          <Select
-                            options={item.values}
-                            placeholder="Vui lòng chọn"
-                            onChange={(e) => {
-                              let list = [...values.selectProperties];
-                              list[index] = {
-                                id: item.id,
-                                valueIDs: [e?.value!],
-                              };
-                              setValues({ ...values, selectProperties: list });
-                            }}
-                          ></Select>
-                        )}
-                      </EditRow>
-                    ))}
+                    selectProps.map((item, index) => {
+                      const error = errors.selectProperties;
+                      const test: SelectProp[] =
+                        typeof error === "object" &&
+                        JSON.parse(JSON.stringify(error));
+                        
+                      return (
+                        <EditRow key={item.id}>
+                          <label>
+                            {item.isRequired && "* "}
+                            {item.name}
+                          </label>
+                          <InputArea>
+                            {test[index] && (
+                              <ErrorMessage>
+                                {test[index].valueIDs}
+                              </ErrorMessage>
+                            )}
+                            {item.hasMultiValues ? (
+                              <Select
+                                options={item.values}
+                                placeholder="Vui lòng chọn"
+                                isMulti={true}
+                                onChange={(e) => {
+                                  setFieldValue(
+                                    `selectProperties[${index}].valueIDs`,
+                                    e.map((item) => item.value)
+                                  );
+                                }}
+                              ></Select>
+                            ) : (
+                              <Select
+                                options={item.values}
+                                placeholder="Vui lòng chọn"
+                                onChange={(e) => {
+                                  setFieldValue(
+                                    `selectProperties[${index}].valueIDs[0]`,
+                                    e?.value
+                                  );
+                                }}
+                              ></Select>
+                            )}
+                          </InputArea>
+                        </EditRow>
+                      );
+                    })}
                   {typingProps.length > 0 &&
                     typingProps.map((item, index) => {
                       switch (item.type) {
@@ -584,6 +629,8 @@ const AddProductPage: React.FC = () => {
                               />
                             </EditRow>
                           );
+                        case "date":
+                          return null;
                         default:
                           return null;
                       }
@@ -609,14 +656,16 @@ const AddProductPage: React.FC = () => {
                             setValues({
                               ...values,
                               firstVariant: {
-                                name: "",
-                                options: [""],
+                                name: undefined,
+                                options: [],
                               },
                               secondVariant: {
-                                name: "",
-                                options: [""],
+                                name: undefined,
+                                options: [],
                               },
-                              combinations: [{ price: 0, stock: 0, sku: "" }],
+                              combinations: [],
+                              price: 0,
+                              stock: 0,
                             });
                             setErrors({ ...errors, firstVariant: {} });
                           }}
@@ -672,6 +721,7 @@ const AddProductPage: React.FC = () => {
                                           0,
                                           combinations.length
                                         );
+                                        list.splice(index, 1);
                                         list.forEach(() => {
                                           values.secondVariant.options.forEach(
                                             () => {
@@ -683,7 +733,6 @@ const AddProductPage: React.FC = () => {
                                             }
                                           );
                                         });
-                                        list.splice(index, 1);
                                         firstVariant.options = list;
                                         setValues({
                                           ...values,
@@ -957,7 +1006,15 @@ const AddProductPage: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setHasVariant(true);
-                          setValues({ ...values, stock: undefined, price: undefined });
+                          setValues({
+                            ...values,
+                            stock: undefined,
+                            price: undefined,
+                            firstVariant: {
+                              name: "",
+                              options: [""],
+                            },
+                          });
                         }}
                       >
                         <span>

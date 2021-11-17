@@ -202,7 +202,6 @@ const CategoryPage: React.FC = () => {
     const current = cateBoxes.find(
       (item) => item.Depth === category.currentDepth
     );
-
     if (current) {
       let updateCateBoxes = cateBoxes.map((cateBox) => {
         if (cateBox.Depth === category.currentDepth)
@@ -218,10 +217,12 @@ const CategoryPage: React.FC = () => {
       });
       setCateBoxes(updateCateBoxes);
     } else {
-      setCateBoxes((state) => [
-        ...state,
-        { CategoryList: category.children, Depth: category.currentDepth },
-      ]);
+      category.children &&
+        category.children.length > 0 &&
+        setCateBoxes((state) => [
+          ...state,
+          { CategoryList: category.children, Depth: category.currentDepth },
+        ]);
     }
 
     if (category && category.currentDepth) {
@@ -245,7 +246,7 @@ const CategoryPage: React.FC = () => {
       } else setCateLink((cateLink) => [...cateLink, category]);
 
       //Active category
-      const cateList = cateBoxes[category.currentDepth - 1].CategoryList?.map(
+      const list = cateBoxes[category.currentDepth - 1].CategoryList?.map(
         (cate) => {
           if (cate.id === category.id) return { ...cate, isActive: true };
           return { ...cate, isActive: false };
@@ -254,29 +255,28 @@ const CategoryPage: React.FC = () => {
       setCateBoxes((state) =>
         state.map((item, index) => {
           if (index + 1 === category.currentDepth)
-            return { ...item, CategoryList: cateList };
+            return { ...item, CategoryList: list };
           return item;
         })
       );
     }
   };
 
-  const findCategory = (list: Category[], id: number, depth: number) => {
-    var result: Category = { id: 0, name: "", isActive: false };
-    for (var category of list) {
-      depth++;
-      if (category.id === id) {
-        result = category;
-        result.currentDepth = depth;
-        depth = 0;
-        break;
-      } else if (category.children) {
-        result = findCategory(category.children, id, depth);
-        depth = 0;
-        if (result.id !== 0) break;
+  const findCategory = (list: Category[], id: number, depth: number): Category  => {
+    depth++;
+    if (list.length > 0) {
+      for (var category of list) {
+        if (category.id === id) {
+          category.currentDepth = depth;
+          return category
+        } 
+
+        const found = findCategory(category?.children!, id, depth);
+        if (found.id !== 0) return found;
       }
     }
-    return result;
+
+    return {id: 0, name: ""};
   };
 
   return (
