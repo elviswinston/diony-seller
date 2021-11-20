@@ -303,7 +303,6 @@ interface TypingProp {
 const initialValues: {
   productName: string;
   description: string;
-  categoryId: number;
   price?: number;
   stock?: number;
   weight: number;
@@ -326,7 +325,6 @@ const initialValues: {
 } = {
   productName: "",
   description: "",
-  categoryId: 0,
   price: 0,
   stock: 0,
   weight: 0,
@@ -352,6 +350,8 @@ const AddProductPage: React.FC = () => {
   const { cateLink, selectedCategory } = useSelector(
     (state: ReduxState) => state.product
   );
+  const { userInfo } = useSelector((state: ReduxState) => state.userLogin);
+
   const [selectProps, setSelectProps] = useState<SelectProperty[]>([]);
   const [typingProps, setTypingProps] = useState<TypingProperty[]>([]);
   const [hasVariant, setHasVariant] = useState(false);
@@ -491,7 +491,7 @@ const AddProductPage: React.FC = () => {
               ? formData.append("coverImage", image.file, image.file.name)
               : formData.append("productImages", image.file, image.file.name);
           });
-          values.categoryId = selectedCategory.id;
+
           formData.append(
             "data",
             JSON.stringify({
@@ -499,6 +499,8 @@ const AddProductPage: React.FC = () => {
               name: values.productName,
               hasVariant,
               hasSecondVariant,
+              categoryId: selectedCategory.id,
+              userId: userInfo?.id
             })
           );
 

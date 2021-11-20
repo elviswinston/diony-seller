@@ -17,6 +17,8 @@ export const userLoginReducer = (
       return { loading: false, error: action.payload };
     case UserLoginActionTypes.USER_LOGOUT:
       return {};
+    case UserLoginActionTypes.SET_STATUS_SELLER:
+      return { userInfo: action.payload };
     default:
       return state;
   }

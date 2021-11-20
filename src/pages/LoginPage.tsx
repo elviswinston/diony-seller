@@ -22,7 +22,7 @@ const Content = styled.div`
   justify-content: center;
 `;
 
-const LoginPage: React.FunctionComponent<IPage> = (props) => {
+const LoginPage: React.FunctionComponent<IPage> = () => {
   return (
     <Container>
       <Header />

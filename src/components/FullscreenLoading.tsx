@@ -14,7 +14,7 @@ const Container = styled.div`
 `;
 
 const FullscreenLoading = () => {
-  return <Container>Cặc</Container>;
+  return <Container>Loading</Container>;
 };
 
 export default FullscreenLoading;

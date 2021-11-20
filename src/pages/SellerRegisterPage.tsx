@@ -2,8 +2,9 @@ import React from "react";
 import IPage from "../types/IPage";
 
 import styled from "styled-components";
-import { Field, Form, Formik } from "formik";
-import AddAddressModal from "../components/AddAddressModal";
+import SellerRegisterForm from "../components/SellerRegisterForm";
+import AuthService from "../services/auth.services";
+import { Redirect } from "react-router-dom";
 
 const Container = styled.div`
   height: 100%;
@@ -38,46 +39,13 @@ const BoxInfo = styled.div`
   }
 `;
 
-const FormInput = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
+const SellerRegisterPage: React.FC<IPage> = () => {
+  const isSeller = AuthService.isSeller();
 
-  label {
-    flex: 1;
-    text-align: right;
-    margin-right: 10px;
-  }
-
-  input[type="text"] {
-    flex: 2;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 5px 10px;
-    outline: none;
-  }
-`;
-
-const RegisterButton = styled.button`
-  margin-top: 20px;
-  outline: none;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  background-color: #ee4d2d;
-  color: #fff;
-  cursor: pointer;
-`;
-
-interface RegisterSeller {
-  shopName: string;
-}
-
-const SellerRegisterPage: React.FC<IPage> = (props) => {
-  return (
+  return isSeller ? (
+    <Redirect to="/" />
+  ) : (
     <Container>
-      <AddAddressModal />
       <Box>
         <BoxInfo>
           <h3>Chào mừng đến Diony!</h3>
@@ -86,31 +54,7 @@ const SellerRegisterPage: React.FC<IPage> = (props) => {
             bản
           </p>
         </BoxInfo>
-        <Formik
-          initialValues={{ shopName: "" }}
-          onSubmit={(value: RegisterSeller) => {
-            console.log("asd");
-          }}
-        >
-          <Form autoComplete="off">
-            <FormInput>
-              <label htmlFor="shopname">Tên Shop</label>
-              <Field type="text" name="shopname" />
-            </FormInput>
-            <FormInput>
-              <label>Địa chi lấy hàng</label>
-            </FormInput>
-            <FormInput>
-              <label htmlFor="email">Email</label>
-              <Field type="text" name="email" disabled />
-            </FormInput>
-            <FormInput>
-              <label htmlFor="phone">Số điện thoại</label>
-              <Field type="text" name="phone" disabled />
-            </FormInput>
-            <RegisterButton>Đăng ký</RegisterButton>
-          </Form>
-        </Formik>
+        <SellerRegisterForm />
       </Box>
     </Container>
   );

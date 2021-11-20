@@ -8,8 +8,9 @@ const PrivateRoute: React.FunctionComponent<{
   exact: boolean;
 }> = (props) => {
   const isLogged = AuthService.isLogged();
-  const isSeller = true;//AuthService.isSeller();
+  const isSeller = AuthService.isSeller();
   const pathName = window.location.pathname;
+
   return isLogged ? (
     isSeller || pathName === "/account/register-seller" ? (
       <Route path={props.path} exact={props.exact} render={props.component} />

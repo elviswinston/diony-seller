@@ -11,6 +11,7 @@ export enum UserLoginActionTypes {
   USER_LOGIN_SUCCESS = "USER_LOGIN_SUCCESS",
   USER_LOGIN_FAILURE = "USER_LOGIN_FAILURE",
   USER_LOGOUT = "USER_LOGOUT",
+  SET_STATUS_SELLER = "SET_STATUS_SELLER",
 }
 
 export interface UserLoginRequestAction {
@@ -31,8 +32,14 @@ export interface UserLogoutAction {
   type: UserLoginActionTypes.USER_LOGOUT;
 }
 
+export interface SetStatusSellerAction {
+  type: UserLoginActionTypes.SET_STATUS_SELLER;
+  payload: User;
+}
+
 export type UserLoginAction =
   | UserLoginRequestAction
   | UserLoginSuccessAction
   | UserLoginFailureAction
-  | UserLogoutAction;
+  | UserLogoutAction
+  | SetStatusSellerAction;

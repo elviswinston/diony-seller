@@ -4,4 +4,6 @@ export interface User {
   token: string;
   isSeller: boolean;
   roleName: string;
+  email: string,
+  phoneNumber: string;
 }

@@ -6,6 +6,9 @@ import styled from "styled-components";
 import useLocationForm from "../hooks/useLocationForm";
 
 import * as Yup from "yup";
+import ReactDOM from "react-dom";
+import { AiOutlineClose } from "react-icons/ai";
+import { Address } from "../types/Address";
 
 const Overlay = styled.div`
   width: 100%;
@@ -15,6 +18,8 @@ const Overlay = styled.div`
   position: fixed;
   display: grid;
   place-items: center;
+  top: 0;
+  left: 0;
 `;
 
 const Container = styled.div``;
@@ -28,8 +33,16 @@ const Box = styled.div`
 `;
 
 const BoxHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
   h3 {
     font-weight: 400;
+  }
+
+  svg {
+    cursor: pointer;
   }
 `;
 
@@ -42,6 +55,12 @@ const BoxContent = styled.div`
   &::-webkit-scrollbar {
     display: none;
   }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 `;
 
 const FormInput = styled.div`
@@ -53,8 +72,7 @@ const FormInput = styled.div`
     font-size: 14px;
   }
 
-  input[type="text"],
-  select,
+  input,
   textarea {
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -92,18 +110,38 @@ const ErrorSpan = styled.span`
   color: #ff4742;
 `;
 
+interface Props {
+  closeModal: any;
+  setAddAddress: any;
+}
+
+const intialValues: Address = {
+  customerName: "",
+  phoneNumber: "",
+  provinceId: 0,
+  districtId: 0,
+  wardCode: 0,
+  provinceName: "",
+  districtName: "",
+  wardName: "",
+  detail: "",
+  type: 2,
+  isDefault: true,
+};
+
 const AddressSchema = Yup.object().shape({
-  name: Yup.string().required("Không được để trống"),
-  phone: Yup.string().required("Không được để trống"),
-  addressDetail: Yup.string().required("Không được để trống"),
+  customerName: Yup.string().required("Không được để trống"),
+  phoneNumber: Yup.string().required("Không được để trống"),
   provinceName: Yup.string().required("Không được để trống"),
   districtName: Yup.string().required("Không được để trống"),
   wardName: Yup.string().required("Không được để trống"),
+  detail: Yup.string().required("Không được để trống"),
 });
 
-const AddAddressModal: React.FC = () => {
+const AddAddressModal: React.FC<Props> = ({ closeModal, setAddAddress }) => {
   const { state, fetchDistrict, fetchWard, onSelectDistrict, onSelectWard } =
     useLocationForm();
+
   const {
     ProvinceOptions,
     DistrictOptions,
@@ -111,42 +149,49 @@ const AddAddressModal: React.FC = () => {
     SelectedDistrict,
     SelectedWard,
   } = state;
-
-  return (
+  const modal = (
     <Overlay>
       <Container>
         <Box>
           <BoxHeader>
             <h3>Thêm địa chỉ mới</h3>
+            <AiOutlineClose onClick={closeModal} />
           </BoxHeader>
           <BoxContent>
             <Formik
-              initialValues={{
-                name: "",
-                phone: "",
-                provinceId: "",
-                districtId: "",
-                wardCode: "",
-                provinceName: "",
-                districtName: "",
-                wardName: "",
-                addressDetail: "",
-              }}
+              initialValues={intialValues}
               onSubmit={(value) => {
-                console.log(value);
+                setAddAddress(value);
+                closeModal();
               }}
               validationSchema={AddressSchema}
+              validateOnChange={false}
+              validateOnBlur={false}
             >
               {({ errors, setFieldValue }) => (
                 <Form autoComplete="off">
                   <FormInput>
-                    <label htmlFor="name">Họ và tên</label>
-                    <Field type="text" name="name" placeholder="Nhập vào" />
-                    {errors.name && <ErrorSpan>{errors.name}</ErrorSpan>}
+                    <label htmlFor="customerName">Họ và tên</label>
+                    <Field
+                      type="text"
+                      name="customerName"
+                      placeholder="Nhập vào"
+                    />
+                    {errors.customerName && (
+                      <ErrorSpan>{errors.customerName}</ErrorSpan>
+                    )}
                   </FormInput>
                   <FormInput>
-                    <label htmlFor="phone">Số điện thoại</label>
-                    <Field type="text" name="phone" placeholder="Nhập vào" />
+                    <label htmlFor="phoneNumber">Số điện thoại</label>
+                    <Field
+                      type="number"
+                      pattern="[0,9]*"
+                      name="phoneNumber"
+                      placeholder="Nhập vào"
+                    />
+                    {errors.phoneNumber && (
+                      <ErrorSpan>{errors.phoneNumber}</ErrorSpan>
+                    )}
                   </FormInput>
                   <AddressLabel>Địa chỉ</AddressLabel>
                   <FormInput>
@@ -161,6 +206,9 @@ const AddAddressModal: React.FC = () => {
                         setFieldValue("provinceName", e?.label);
                       }}
                     />
+                    {errors.provinceName && (
+                      <ErrorSpan>{errors.provinceName}</ErrorSpan>
+                    )}
                   </FormInput>
                   <FormInput>
                     <Select
@@ -176,6 +224,9 @@ const AddAddressModal: React.FC = () => {
                       }}
                       value={SelectedDistrict ? SelectedDistrict : null}
                     />
+                    {errors.districtName && (
+                      <ErrorSpan>{errors.districtName}</ErrorSpan>
+                    )}
                   </FormInput>
                   <FormInput>
                     <Select
@@ -186,14 +237,18 @@ const AddAddressModal: React.FC = () => {
                       onChange={(e) => {
                         onSelectWard(e?.value!);
                         setFieldValue("wardCode", e?.value);
-                        setFieldValue("WardName", e?.label);
+                        setFieldValue("wardName", e?.label);
                       }}
                       value={SelectedWard ? SelectedWard : null}
                     />
+                    {errors.wardName && (
+                      <ErrorSpan>{errors.wardName}</ErrorSpan>
+                    )}
                   </FormInput>
                   <FormInput>
-                    <label htmlFor="addressDetail">Địa chỉ chi tiết</label>
-                    <Field as="textarea" name="addressDetail" />
+                    <label htmlFor="detail">Địa chỉ chi tiết</label>
+                    <Field as="textarea" name="detail" />
+                    {errors.detail && <ErrorSpan>{errors.detail}</ErrorSpan>}
                   </FormInput>
                   <div style={{ textAlign: "center" }}>
                     <AddButton type="submit">Thêm</AddButton>
@@ -206,6 +261,8 @@ const AddAddressModal: React.FC = () => {
       </Container>
     </Overlay>
   );
+
+  return ReactDOM.createPortal(modal, document.body);
 };
 
 export default AddAddressModal;

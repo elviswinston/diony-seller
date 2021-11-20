@@ -28,7 +28,8 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
 
-    input[type="text"], input[type="password"] {
+    input[type="text"],
+    input[type="password"] {
       margin: 10px 0;
       padding: 10px;
       border-radius: 4px;
@@ -95,14 +96,13 @@ const Alert = styled.div`
   font-size: 14px;
 `;
 
-
 interface LoginValues {
-  username: string;
+  email: string;
   password: string;
 }
 
 const LoginSchema = Yup.object().shape({
-  username: Yup.string().required("Không được để trống"),
+  email: Yup.string().required("Không được để trống"),
   password: Yup.string().required("Không được để trống"),
 });
 
@@ -121,16 +121,18 @@ export const LoginForm = () => {
       <h1>Đăng nhập</h1>
       {error && <Alert>{error}</Alert>}
       <Formik
-        initialValues={{ username: "", password: "" }}
+        initialValues={{ email: "", password: "" }}
         onSubmit={(values: LoginValues) => {
-          dispatch(login(values.username, values.password));
+          dispatch(login(values.email, values.password));
         }}
         validationSchema={LoginSchema}
+        validateOnChange={false}
+        validateOnBlur={false}
       >
         {({ errors }) => (
           <Form autoComplete="off">
-            <Field type="text" name="username" placeholder="Tên đăng nhập" />
-            {errors.username && <ErrorSpan>{errors.username}</ErrorSpan>}
+            <Field type="text" name="email" placeholder="Email" />
+            {errors.email && <ErrorSpan>{errors.email}</ErrorSpan>}
             <Field type="password" name="password" placeholder="Mật khẩu" />
             {errors.password && <ErrorSpan>{errors.password}</ErrorSpan>}
             <Remember>

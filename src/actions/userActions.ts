@@ -1,6 +1,6 @@
 import AuthService from "../services/auth.services";
 import { AppThunk } from "../store";
-import { UserLoginActionTypes } from "../types";
+import { User, UserLoginActionTypes } from "../types";
 import { errorHandler } from "./errorHandler";
 
 interface Response {
@@ -11,7 +11,7 @@ interface Response {
 }
 
 export const login =
-  (username: string, password: string): AppThunk =>
+  (email: string, password: string): AppThunk =>
   async (dispatch) => {
     try {
       dispatch({
@@ -19,27 +19,32 @@ export const login =
       });
 
       const { data }: { data: Response } = await AuthService.login(
-        username,
+        email,
         password
       );
 
-      if (data.status === 0) {
-        dispatch({
-          type: UserLoginActionTypes.USER_LOGIN_SUCCESS,
-          payload: data.data,
-        });
+      dispatch({
+        type: UserLoginActionTypes.USER_LOGIN_SUCCESS,
+        payload: data,
+      });
 
-        localStorage.setItem("userInfo", JSON.stringify(data.data));
-      } else {
-        dispatch({
-          type: UserLoginActionTypes.USER_LOGIN_FAILURE,
-          payload: data.message,
-        });
-      }
+      localStorage.setItem("userInfo", JSON.stringify(data));
     } catch (error) {
       dispatch({
         type: UserLoginActionTypes.USER_LOGIN_FAILURE,
         payload: errorHandler(error),
       });
     }
+  };
+
+export const setStatusSeller =
+  (userInfo: User): AppThunk =>
+  async (dispatch) => {
+    try {
+      dispatch({
+        type: UserLoginActionTypes.SET_STATUS_SELLER,
+        payload: userInfo,
+      });
+      localStorage.setItem("userInfo", JSON.stringify(userInfo));
+    } catch (error) {}
   };

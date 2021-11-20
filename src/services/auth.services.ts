@@ -2,8 +2,8 @@ import axios from "axios";
 
 const API_URL = "http://localhost:5000/api/User/";
 
-const login = (username: string, password: string) => {
-  return axios.post(API_URL + "login", { username, password });
+const login = (email: string, password: string) => {
+  return axios.post(API_URL + "login", { email, password });
 };
 
 const isLogged = () => {
