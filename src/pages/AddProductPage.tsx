@@ -500,7 +500,13 @@ const AddProductPage: React.FC = () => {
               hasVariant,
               hasSecondVariant,
               categoryId: selectedCategory.id,
-              userId: userInfo?.id
+              userId: userInfo?.id,
+              firstVariant: values.firstVariant.name
+                ? values.firstVariant
+                : null,
+              secondVariant: values.secondVariant.name
+                ? values.secondVariant
+                : null,
             })
           );
 
@@ -576,7 +582,7 @@ const AddProductPage: React.FC = () => {
                       const test: SelectProp[] =
                         typeof error === "object" &&
                         JSON.parse(JSON.stringify(error));
-                        
+
                       return (
                         <EditRow key={item.id}>
                           <label>
@@ -788,6 +794,16 @@ const AddProductPage: React.FC = () => {
                           <AiOutlineClose
                             color="#999"
                             onClick={() => {
+                              const combinations = values.combinations;
+                              combinations.splice(0, combinations.length);
+                              values.firstVariant.options.forEach(() => {
+                                combinations.push({
+                                  price: 0,
+                                  stock: 0,
+                                  sku: "",
+                                });
+                              });
+
                               setHasSecondVariant(false);
                               setValues({
                                 ...values,
@@ -795,6 +811,7 @@ const AddProductPage: React.FC = () => {
                                   name: "",
                                   options: [""],
                                 },
+                                combinations: combinations,
                               });
                               setErrors({ ...errors, secondVariant: {} });
                             }}
@@ -1016,6 +1033,7 @@ const AddProductPage: React.FC = () => {
                               name: "",
                               options: [""],
                             },
+                            combinations: [{ price: 0, stock: 0, sku: "" }],
                           });
                         }}
                       >

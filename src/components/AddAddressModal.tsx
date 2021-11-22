@@ -125,7 +125,6 @@ const intialValues: Address = {
   districtName: "",
   wardName: "",
   detail: "",
-  type: 2,
   isDefault: true,
 };
 

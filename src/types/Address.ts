@@ -7,7 +7,6 @@ export interface Address {
   provinceName: string;
   districtName: string;
   wardName: string;
-  type: number;
   isDefault: boolean;
   detail: string;
 }
