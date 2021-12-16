@@ -133,44 +133,31 @@ interface CateBox {
   Depth?: Number;
 }
 
+
+
 const CategoryPage: React.FC = () => {
   const [cateList, setCateList] = useState<Category[]>([]);
   const [cateBoxes, setCateBoxes] = useState<CateBox[]>([]);
   const [selectedCate, setSelectedCate] = useState<Category>();
   const [cateLink, setCateLink] = useState<Category[]>([]);
+  const [maxDepth, setMaxDepth] = useState(0);
 
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     CategoryServices.getMenu().then((response) => {
-      setCateList(response.data);
+      setCateList(response.data.categories);
       setCateBoxes((cateBoxes) => [
         ...cateBoxes,
-        { CategoryList: response.data, Depth: 0 },
+        { CategoryList: response.data.categories, Depth: 0 },
       ]);
+      setMaxDepth(response.data.maxDepth);
     });
   }, []);
 
   let categoryBoxes = [];
-  let depth = 0;
 
-  const getMaxDepth = (list: Category[], lastDepth: number) => {
-    if (list.length === 0) return 0;
-
-    list.forEach((item) => {
-      if (item.children && item.children.length > 0) {
-        lastDepth++;
-        if (lastDepth > depth) depth = lastDepth;
-        getMaxDepth(item.children, lastDepth);
-      }
-
-      lastDepth = 0;
-    });
-  };
-
-  getMaxDepth(cateList, 0);
-
-  for (let i = 0; i <= depth; i++) {
+  for (let i = 0; i <= maxDepth; i++) {
     categoryBoxes.push(
       <CategoryBox key={i}>
         <List>

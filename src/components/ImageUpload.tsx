@@ -82,11 +82,12 @@ interface Props {
   explainText: string;
   setImages: React.Dispatch<React.SetStateAction<{ id: number; file: File }[]>>;
   index: number;
+  imageUrl?: string;
 }
 
-const ImageUpload: React.FC<Props> = ({ explainText, setImages, index }) => {
+const ImageUpload: React.FC<Props> = ({ explainText, setImages, index, imageUrl }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [background, setBackground] = useState("");
+  const [background, setBackground] = useState(imageUrl ? imageUrl : "");
   const [fileName, setFileName] = useState("");
 
   const { isOpen, openModal, closeModal } = useModal();

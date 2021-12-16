@@ -15,6 +15,8 @@ import {
   AiOutlineDelete,
 } from "react-icons/ai";
 import config from "../config/config";
+import useLoading from "../hooks/useLoading";
+import FullscreenLoading from "../components/FullscreenLoading";
 import ProductServices from "../services/product.services";
 
 const Container = styled.div`
@@ -300,7 +302,7 @@ interface TypingProp {
   name: string;
 }
 
-const initialValues: {
+interface InitialValues {
   productName: string;
   description: string;
   price?: number;
@@ -322,35 +324,36 @@ const initialValues: {
   hasSecondVariant: boolean;
   typingProperties: TypingProp[];
   selectProperties: SelectProp[];
-} = {
-  productName: "",
-  description: "",
-  price: 0,
-  stock: 0,
-  weight: 0,
-  height: 0,
-  width: 0,
-  length: 0,
-  sku: "",
-  firstVariant: {
-    name: "",
-    options: [""],
-  },
-  secondVariant: {
-    name: "",
-    options: [""],
-  },
-  combinations: [],
-  hasSecondVariant: false,
-  typingProperties: [{ id: 0, value: "", name: "" }],
-  selectProperties: [{ id: 0, valueIDs: [0], isRequired: false, name: "" }],
-};
+}
 
 const AddProductPage: React.FC = () => {
   const { cateLink, selectedCategory } = useSelector(
     (state: ReduxState) => state.product
   );
   const { userInfo } = useSelector((state: ReduxState) => state.userLogin);
+  const [initialValues, setInitialValues] = useState<InitialValues>({
+    productName: "",
+    description: "",
+    price: 0,
+    stock: 0,
+    weight: 0,
+    height: 0,
+    width: 0,
+    length: 0,
+    sku: "",
+    firstVariant: {
+      name: "",
+      options: [""],
+    },
+    secondVariant: {
+      name: "",
+      options: [""],
+    },
+    combinations: [],
+    hasSecondVariant: false,
+    typingProperties: [{ id: 0, value: "", name: "" }],
+    selectProperties: [{ id: 0, valueIDs: [0], isRequired: false, name: "" }],
+  });
 
   const [selectProps, setSelectProps] = useState<SelectProperty[]>([]);
   const [typingProps, setTypingProps] = useState<TypingProperty[]>([]);
@@ -358,31 +361,39 @@ const AddProductPage: React.FC = () => {
   const [hasSecondVariant, setHasSecondVariant] = useState(false);
   const [images, setImages] = useState<{ id: number; file: File }[]>([]);
   const history = useHistory();
+  const { isLoading, onLoading, offLoading } = useLoading();
 
   useEffect(() => {
-    if (selectedCategory.id !== 0) {
-      CategoryServices.getSelectProperties(selectedCategory.id).then(
-        (response) => {
-          setSelectProps(response.data);
-          initialValues.selectProperties = response.data.map((item) => ({
-            id: item.id,
-            valueIDs: [],
-            isRequired: item.isRequired,
-            name: item.name,
-          }));
-        }
-      );
-      CategoryServices.getTypingProperties(selectedCategory.id).then(
-        (response) => {
-          setTypingProps(response.data);
-          initialValues.typingProperties = response.data.map((item) => ({
-            id: item.id,
-            value: "",
-            name: item.name,
-          }));
-        }
-      );
-    }
+    const fetchProperties = (categoryId: number) => {
+      CategoryServices.getSelectProperties(categoryId).then((response) => {
+        setSelectProps(response.data);
+        const props = response.data.map((item) => ({
+          id: item.id,
+          valueIDs: [],
+          isRequired: item.isRequired,
+          name: item.name,
+        }));
+        setInitialValues((previous) => ({
+          ...previous,
+          selectProperties: props,
+        }));
+      });
+
+      CategoryServices.getTypingProperties(categoryId).then((response) => {
+        setTypingProps(response.data);
+        const props = response.data.map((item) => ({
+          id: item.id,
+          value: "",
+          name: item.name,
+        }));
+        setInitialValues((previous) => ({
+          ...previous,
+          typingProperties: props,
+        }));
+      });
+    };
+
+    fetchProperties(selectedCategory.id);
   }, [selectedCategory]);
 
   let imgUpload: number[] = [];
@@ -476,344 +487,213 @@ const AddProductPage: React.FC = () => {
   });
 
   return selectedCategory.id !== 0 ? (
-    <Formik
-      initialValues={initialValues}
-      onSubmit={(values) => {
-        if (
-          images.length === 0 ||
-          images.findIndex((image) => image.id === 0) === -1
-        )
-          alert("Chưa chọn ảnh bìa");
-        else {
-          let formData = new FormData();
-          images.forEach((image) => {
-            image.id === 0
-              ? formData.append("coverImage", image.file, image.file.name)
-              : formData.append("productImages", image.file, image.file.name);
-          });
+    <>
+      {isLoading && <FullscreenLoading Type="Overlay" />}
+      <Formik
+        initialValues={initialValues}
+        onSubmit={(values) => {
+          onLoading();
+          if (
+            images.length === 0 ||
+            images.findIndex((image) => image.id === 0) === -1
+          )
+            alert("Chưa chọn ảnh bìa");
+          else {
+            let formData = new FormData();
+            images.forEach((image) => {
+              image.id === 0
+                ? formData.append("coverImage", image.file, image.file.name)
+                : formData.append("productImages", image.file, image.file.name);
+            });
 
-          formData.append(
-            "data",
-            JSON.stringify({
-              ...values,
-              name: values.productName,
-              hasVariant,
-              hasSecondVariant,
-              categoryId: selectedCategory.id,
-              userId: userInfo?.id,
-              firstVariant: values.firstVariant.name
-                ? values.firstVariant
-                : null,
-              secondVariant: values.secondVariant.name
-                ? values.secondVariant
-                : null,
-            })
-          );
+            formData.append(
+              "data",
+              JSON.stringify({
+                ...values,
+                name: values.productName,
+                hasVariant,
+                hasSecondVariant,
+                categoryId: selectedCategory.id,
+                userId: userInfo?.id,
+                firstVariant: values.firstVariant.name
+                  ? values.firstVariant
+                  : null,
+                secondVariant: values.secondVariant.name
+                  ? values.secondVariant
+                  : null,
+              })
+            );
 
-          ProductServices.addProduct(formData)
-            .then(() => {
-              history.push("/");
-            })
-            .catch(() => alert("Lỗi api rùi"));
-        }
-      }}
-      validationSchema={AddProductSchema}
-      validateOnChange={false}
-      validateOnBlur={true}
-    >
-      {({ errors, values, setValues, setErrors, touched, setFieldValue }) => (
-        <Form autoComplete="false">
-          <Container>
-            <Box>
-              <BoxHeader>
-                <h3>Thông tin cơ bản</h3>
-              </BoxHeader>
-              <BoxContent>
-                <BasicGridContainer>
-                  <label>Hình ảnh sản phẩm</label>
-                  <UploadContainer>
-                    {imgUpload.map((item) => (
-                      <ImageUpload
-                        key={item}
-                        index={item}
-                        explainText={
-                          item === 0 ? "*Ảnh bìa" : "Hình ảnh " + item
-                        }
-                        setImages={setImages}
-                      />
-                    ))}
-                  </UploadContainer>
-                  <label>* Tên sản phẩm</label>
-                  <InputArea>
-                    <Field
-                      type="text"
-                      name="productName"
-                      placeholder="Nhập vào"
-                    />
-                    {errors.productName && touched.productName && (
-                      <ErrorMessage>{errors.productName}</ErrorMessage>
-                    )}
-                  </InputArea>
-                  <label>* Mô tả sản phẩm</label>
-                  <InputArea>
-                    <Field
-                      as="textarea"
-                      name="description"
-                      placeholder="Nhập vào"
-                    />
-                    {errors.description && touched.description && (
-                      <ErrorMessage>{errors.description}</ErrorMessage>
-                    )}
-                  </InputArea>
-                  <label>* Danh mục</label>
-                  <p>{cateLink}</p>
-                </BasicGridContainer>
-              </BoxContent>
-            </Box>
-            <Box>
-              <BoxHeader>
-                <h3>Thông tin chi tiết</h3>
-              </BoxHeader>
-              <BoxContent>
-                <GridContainer>
-                  {selectProps.length > 0 &&
-                    selectProps.map((item, index) => {
-                      const error = errors.selectProperties;
-                      const test: SelectProp[] =
-                        typeof error === "object" &&
-                        JSON.parse(JSON.stringify(error));
-
-                      return (
-                        <EditRow key={item.id}>
-                          <label>
-                            {item.isRequired && "* "}
-                            {item.name}
-                          </label>
-                          <InputArea>
-                            {test[index] && (
-                              <ErrorMessage>
-                                {test[index].valueIDs}
-                              </ErrorMessage>
-                            )}
-                            {item.hasMultiValues ? (
-                              <Select
-                                options={item.values}
-                                placeholder="Vui lòng chọn"
-                                isMulti={true}
-                                onChange={(e) => {
-                                  setFieldValue(
-                                    `selectProperties[${index}].valueIDs`,
-                                    e.map((item) => item.value)
-                                  );
-                                }}
-                              ></Select>
-                            ) : (
-                              <Select
-                                options={item.values}
-                                placeholder="Vui lòng chọn"
-                                onChange={(e) => {
-                                  setFieldValue(
-                                    `selectProperties[${index}].valueIDs[0]`,
-                                    e?.value
-                                  );
-                                }}
-                              ></Select>
-                            )}
-                          </InputArea>
-                        </EditRow>
-                      );
-                    })}
-                  {typingProps.length > 0 &&
-                    typingProps.map((item, index) => {
-                      switch (item.type) {
-                        case "text":
-                          return (
-                            <EditRow key={item.id}>
-                              <label>{item.name}</label>
-                              <Field
-                                type="text"
-                                placeholder="Nhập vào"
-                                name={`typingProperties.${index}.value`}
-                              />
-                            </EditRow>
-                          );
-                        case "date":
-                          return null;
-                        default:
-                          return null;
-                      }
-                    })}
-                </GridContainer>
-              </BoxContent>
-            </Box>
-            <Box>
-              <BoxHeader>
-                <h3>Thông tin bán hàng</h3>
-              </BoxHeader>
-              <BoxContent>
-                <BasicGridContainer>
-                  {hasVariant ? (
-                    <>
-                      <label>Nhóm phân loại 1</label>
-                      <VariantPanel>
-                        <AiOutlineClose
-                          color="#999"
-                          onClick={() => {
-                            setHasVariant(false);
-                            setHasSecondVariant(false);
-                            setValues({
-                              ...values,
-                              firstVariant: {
-                                name: undefined,
-                                options: [],
-                              },
-                              secondVariant: {
-                                name: undefined,
-                                options: [],
-                              },
-                              combinations: [],
-                              price: 0,
-                              stock: 0,
-                            });
-                            setErrors({ ...errors, firstVariant: {} });
-                          }}
-                          className="close-button"
+            ProductServices.addProduct(formData)
+              .then(() => {
+                offLoading();
+                history.push("/");
+              })
+              .catch(() => {
+                offLoading();
+                alert("Lỗi api rùi");
+              });
+          }
+        }}
+        validationSchema={AddProductSchema}
+        validateOnChange={false}
+        validateOnBlur={true}
+      >
+        {({ errors, values, setValues, setErrors, touched, setFieldValue }) => (
+          <Form autoComplete="false">
+            <Container>
+              <Box>
+                <BoxHeader>
+                  <h3>Thông tin cơ bản</h3>
+                </BoxHeader>
+                <BoxContent>
+                  <BasicGridContainer>
+                    <label>Hình ảnh sản phẩm</label>
+                    <UploadContainer>
+                      {imgUpload.map((item) => (
+                        <ImageUpload
+                          key={item}
+                          index={item}
+                          explainText={
+                            item === 0 ? "*Ảnh bìa" : "Hình ảnh " + item
+                          }
+                          setImages={setImages}
                         />
-                        <VariantPanelContainer>
-                          <OptionContainer>
-                            <label>Tên nhóm</label>
+                      ))}
+                    </UploadContainer>
+                    <label>* Tên sản phẩm</label>
+                    <InputArea>
+                      <Field
+                        type="text"
+                        name="productName"
+                        placeholder="Nhập vào"
+                      />
+                      {errors.productName && touched.productName && (
+                        <ErrorMessage>{errors.productName}</ErrorMessage>
+                      )}
+                    </InputArea>
+                    <label>* Mô tả sản phẩm</label>
+                    <InputArea>
+                      <Field
+                        as="textarea"
+                        name="description"
+                        placeholder="Nhập vào"
+                      />
+                      {errors.description && touched.description && (
+                        <ErrorMessage>{errors.description}</ErrorMessage>
+                      )}
+                    </InputArea>
+                    <label>* Danh mục</label>
+                    <p>{cateLink}</p>
+                  </BasicGridContainer>
+                </BoxContent>
+              </Box>
+              <Box>
+                <BoxHeader>
+                  <h3>Thông tin chi tiết</h3>
+                </BoxHeader>
+                <BoxContent>
+                  <GridContainer>
+                    {selectProps.length > 0 &&
+                      selectProps.map((item, index) => {
+                        const error = errors.selectProperties;
+                        const test: SelectProp[] =
+                          typeof error === "object" &&
+                          JSON.parse(JSON.stringify(error));
+
+                        return (
+                          <EditRow key={item.id}>
+                            <label>
+                              {item.isRequired && "* "}
+                              {item.name}
+                            </label>
                             <InputArea>
-                              <Field
-                                type="text"
-                                name="firstVariant.name"
-                                placeholder="Nhập tên nhóm phân loại hàng, ví dụ: màu sắc, kích cỡ"
-                              />
-                              {errors.firstVariant?.name &&
-                                touched.firstVariant?.name && (
-                                  <ErrorMessage>
-                                    {errors.firstVariant.name}
-                                  </ErrorMessage>
-                                )}
+                              {test[index] && (
+                                <ErrorMessage>
+                                  {test[index].valueIDs}
+                                </ErrorMessage>
+                              )}
+                              {item.hasMultiValues ? (
+                                <Select
+                                  options={item.values}
+                                  placeholder="Vui lòng chọn"
+                                  isMulti={true}
+                                  onChange={(e) => {
+                                    setFieldValue(
+                                      `selectProperties[${index}].valueIDs`,
+                                      e.map((item) => item.value)
+                                    );
+                                  }}
+                                ></Select>
+                              ) : (
+                                <Select
+                                  options={item.values}
+                                  placeholder="Vui lòng chọn"
+                                  onChange={(e) => {
+                                    setFieldValue(
+                                      `selectProperties[${index}].valueIDs[0]`,
+                                      e?.value
+                                    );
+                                  }}
+                                ></Select>
+                              )}
                             </InputArea>
-                          </OptionContainer>
-                          {values.firstVariant.options.map((item, index) => {
-                            const error =
-                              errors.firstVariant?.options?.length &&
-                              touched.secondVariant?.options &&
-                              errors.firstVariant.options[index];
+                          </EditRow>
+                        );
+                      })}
+                    {typingProps.length > 0 &&
+                      typingProps.map((item, index) => {
+                        switch (item.type) {
+                          case "text":
                             return (
-                              <OptionContainer key={index}>
-                                <label>{index > 0 ? "" : "Phân loại"}</label>
-                                <InputArea>
-                                  <Field
-                                    type="text"
-                                    name={`firstVariant.options.${index}`}
-                                    placeholder="Nhập phân loại hàng, ví dụ: trắng, đỏ"
-                                    values={item}
-                                  />
-                                  {error && (
-                                    <ErrorMessage>{error}</ErrorMessage>
-                                  )}
-                                </InputArea>
-                                <VariantPanelAction>
-                                  {values.firstVariant.options.length > 1 && (
-                                    <AiOutlineDelete
-                                      color="#999"
-                                      onClick={() => {
-                                        const firstVariant =
-                                          values.firstVariant;
-                                        const list = [...firstVariant.options];
-                                        const combinations =
-                                          values.combinations;
-                                        combinations.splice(
-                                          0,
-                                          combinations.length
-                                        );
-                                        list.splice(index, 1);
-                                        list.forEach(() => {
-                                          values.secondVariant.options.forEach(
-                                            () => {
-                                              combinations.push({
-                                                price: 0,
-                                                stock: 0,
-                                                sku: "",
-                                              });
-                                            }
-                                          );
-                                        });
-                                        firstVariant.options = list;
-                                        setValues({
-                                          ...values,
-                                          firstVariant,
-                                          combinations,
-                                        });
-                                      }}
-                                    />
-                                  )}
-                                </VariantPanelAction>
-                              </OptionContainer>
+                              <EditRow key={item.id}>
+                                <label>{item.name}</label>
+                                <Field
+                                  type="text"
+                                  placeholder="Nhập vào"
+                                  name={`typingProperties.${index}.value`}
+                                />
+                              </EditRow>
                             );
-                          })}
-                          <OptionContainer>
-                            <div></div>
-                            <AddVariantButton
-                              type="button"
-                              style={{ width: "100%" }}
-                              onClick={() => {
-                                const firstVariant = values.firstVariant;
-                                firstVariant.options.push("");
-                                const combinations = values.combinations;
-                                combinations.splice(0, combinations.length);
-                                values.firstVariant.options.forEach(() => {
-                                  values.secondVariant.options.forEach(() => {
-                                    combinations.push({
-                                      price: 0,
-                                      stock: 0,
-                                      sku: "",
-                                    });
-                                  });
-                                });
-                                setValues({
-                                  ...values,
-                                  firstVariant,
-                                  combinations,
-                                });
-                              }}
-                            >
-                              <span>
-                                <AiOutlinePlusCircle size="16px" />
-                                Thêm phân loại hàng
-                              </span>
-                            </AddVariantButton>
-                          </OptionContainer>
-                        </VariantPanelContainer>
-                      </VariantPanel>
-                      <label>Nhóm phân loại 2</label>
-                      {hasSecondVariant ? (
+                          case "date":
+                            return null;
+                          default:
+                            return null;
+                        }
+                      })}
+                  </GridContainer>
+                </BoxContent>
+              </Box>
+              <Box>
+                <BoxHeader>
+                  <h3>Thông tin bán hàng</h3>
+                </BoxHeader>
+                <BoxContent>
+                  <BasicGridContainer>
+                    {hasVariant ? (
+                      <>
+                        <label>Nhóm phân loại 1</label>
                         <VariantPanel>
                           <AiOutlineClose
                             color="#999"
                             onClick={() => {
-                              const combinations = values.combinations;
-                              combinations.splice(0, combinations.length);
-                              values.firstVariant.options.forEach(() => {
-                                combinations.push({
-                                  price: 0,
-                                  stock: 0,
-                                  sku: "",
-                                });
-                              });
-
+                              setHasVariant(false);
                               setHasSecondVariant(false);
                               setValues({
                                 ...values,
-                                secondVariant: {
-                                  name: "",
-                                  options: [""],
+                                firstVariant: {
+                                  name: undefined,
+                                  options: [],
                                 },
-                                combinations: combinations,
+                                secondVariant: {
+                                  name: undefined,
+                                  options: [],
+                                },
+                                combinations: [],
+                                price: 0,
+                                stock: 0,
                               });
-                              setErrors({ ...errors, secondVariant: {} });
+                              setErrors({ ...errors, firstVariant: {} });
                             }}
                             className="close-button"
                           />
@@ -823,29 +703,29 @@ const AddProductPage: React.FC = () => {
                               <InputArea>
                                 <Field
                                   type="text"
-                                  name="secondVariant.name"
+                                  name="firstVariant.name"
                                   placeholder="Nhập tên nhóm phân loại hàng, ví dụ: màu sắc, kích cỡ"
                                 />
-                                {errors.secondVariant?.name &&
-                                  touched.secondVariant?.name && (
+                                {errors.firstVariant?.name &&
+                                  touched.firstVariant?.name && (
                                     <ErrorMessage>
-                                      {errors.secondVariant.name}
+                                      {errors.firstVariant.name}
                                     </ErrorMessage>
                                   )}
                               </InputArea>
                             </OptionContainer>
-                            {values.secondVariant.options.map((item, index) => {
+                            {values.firstVariant.options.map((item, index) => {
                               const error =
-                                errors.secondVariant?.options?.length &&
+                                errors.firstVariant?.options?.length &&
                                 touched.secondVariant?.options &&
-                                errors.secondVariant.options[index];
+                                errors.firstVariant.options[index];
                               return (
                                 <OptionContainer key={index}>
                                   <label>{index > 0 ? "" : "Phân loại"}</label>
                                   <InputArea>
                                     <Field
                                       type="text"
-                                      name={`secondVariant.options.${index}`}
+                                      name={`firstVariant.options.${index}`}
                                       placeholder="Nhập phân loại hàng, ví dụ: trắng, đỏ"
                                       values={item}
                                     />
@@ -854,40 +734,37 @@ const AddProductPage: React.FC = () => {
                                     )}
                                   </InputArea>
                                   <VariantPanelAction>
-                                    {values.secondVariant.options.length >
-                                      1 && (
+                                    {values.firstVariant.options.length > 1 && (
                                       <AiOutlineDelete
                                         color="#999"
                                         onClick={() => {
-                                          const secondVariant =
-                                            values.secondVariant;
+                                          const firstVariant =
+                                            values.firstVariant;
                                           const list = [
-                                            ...secondVariant.options,
+                                            ...firstVariant.options,
                                           ];
-                                          list.splice(index, 1);
-                                          secondVariant.options = list;
                                           const combinations =
                                             values.combinations;
                                           combinations.splice(
                                             0,
                                             combinations.length
                                           );
-                                          values.firstVariant.options.forEach(
-                                            () => {
-                                              values.secondVariant.options.forEach(
-                                                () => {
-                                                  combinations.push({
-                                                    price: 0,
-                                                    stock: 0,
-                                                    sku: "",
-                                                  });
-                                                }
-                                              );
-                                            }
-                                          );
+                                          list.splice(index, 1);
+                                          list.forEach(() => {
+                                            values.secondVariant.options.forEach(
+                                              () => {
+                                                combinations.push({
+                                                  price: 0,
+                                                  stock: 0,
+                                                  sku: "",
+                                                });
+                                              }
+                                            );
+                                          });
+                                          firstVariant.options = list;
                                           setValues({
                                             ...values,
-                                            secondVariant,
+                                            firstVariant,
                                             combinations,
                                           });
                                         }}
@@ -903,8 +780,8 @@ const AddProductPage: React.FC = () => {
                                 type="button"
                                 style={{ width: "100%" }}
                                 onClick={() => {
-                                  const secondVariant = values.secondVariant;
-                                  secondVariant.options.push("");
+                                  const firstVariant = values.firstVariant;
+                                  firstVariant.options.push("");
                                   const combinations = values.combinations;
                                   combinations.splice(0, combinations.length);
                                   values.firstVariant.options.forEach(() => {
@@ -918,7 +795,7 @@ const AddProductPage: React.FC = () => {
                                   });
                                   setValues({
                                     ...values,
-                                    secondVariant,
+                                    firstVariant,
                                     combinations,
                                   });
                                 }}
@@ -931,198 +808,350 @@ const AddProductPage: React.FC = () => {
                             </OptionContainer>
                           </VariantPanelContainer>
                         </VariantPanel>
-                      ) : (
+                        <label>Nhóm phân loại 2</label>
+                        {hasSecondVariant ? (
+                          <VariantPanel>
+                            <AiOutlineClose
+                              color="#999"
+                              onClick={() => {
+                                const combinations = values.combinations;
+                                combinations.splice(0, combinations.length);
+                                values.firstVariant.options.forEach(() => {
+                                  combinations.push({
+                                    price: 0,
+                                    stock: 0,
+                                    sku: "",
+                                  });
+                                });
+
+                                setHasSecondVariant(false);
+                                setValues({
+                                  ...values,
+                                  secondVariant: {
+                                    name: "",
+                                    options: [""],
+                                  },
+                                  combinations: combinations,
+                                });
+                                setErrors({ ...errors, secondVariant: {} });
+                              }}
+                              className="close-button"
+                            />
+                            <VariantPanelContainer>
+                              <OptionContainer>
+                                <label>Tên nhóm</label>
+                                <InputArea>
+                                  <Field
+                                    type="text"
+                                    name="secondVariant.name"
+                                    placeholder="Nhập tên nhóm phân loại hàng, ví dụ: màu sắc, kích cỡ"
+                                  />
+                                  {errors.secondVariant?.name &&
+                                    touched.secondVariant?.name && (
+                                      <ErrorMessage>
+                                        {errors.secondVariant.name}
+                                      </ErrorMessage>
+                                    )}
+                                </InputArea>
+                              </OptionContainer>
+                              {values.secondVariant.options.map(
+                                (item, index) => {
+                                  const error =
+                                    errors.secondVariant?.options?.length &&
+                                    touched.secondVariant?.options &&
+                                    errors.secondVariant.options[index];
+                                  return (
+                                    <OptionContainer key={index}>
+                                      <label>
+                                        {index > 0 ? "" : "Phân loại"}
+                                      </label>
+                                      <InputArea>
+                                        <Field
+                                          type="text"
+                                          name={`secondVariant.options.${index}`}
+                                          placeholder="Nhập phân loại hàng, ví dụ: trắng, đỏ"
+                                          values={item}
+                                        />
+                                        {error && (
+                                          <ErrorMessage>{error}</ErrorMessage>
+                                        )}
+                                      </InputArea>
+                                      <VariantPanelAction>
+                                        {values.secondVariant.options.length >
+                                          1 && (
+                                          <AiOutlineDelete
+                                            color="#999"
+                                            onClick={() => {
+                                              const secondVariant =
+                                                values.secondVariant;
+                                              const list = [
+                                                ...secondVariant.options,
+                                              ];
+                                              list.splice(index, 1);
+                                              secondVariant.options = list;
+                                              const combinations =
+                                                values.combinations;
+                                              combinations.splice(
+                                                0,
+                                                combinations.length
+                                              );
+                                              values.firstVariant.options.forEach(
+                                                () => {
+                                                  values.secondVariant.options.forEach(
+                                                    () => {
+                                                      combinations.push({
+                                                        price: 0,
+                                                        stock: 0,
+                                                        sku: "",
+                                                      });
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                              setValues({
+                                                ...values,
+                                                secondVariant,
+                                                combinations,
+                                              });
+                                            }}
+                                          />
+                                        )}
+                                      </VariantPanelAction>
+                                    </OptionContainer>
+                                  );
+                                }
+                              )}
+                              <OptionContainer>
+                                <div></div>
+                                <AddVariantButton
+                                  type="button"
+                                  style={{ width: "100%" }}
+                                  onClick={() => {
+                                    const secondVariant = values.secondVariant;
+                                    secondVariant.options.push("");
+                                    const combinations = values.combinations;
+                                    combinations.splice(0, combinations.length);
+                                    values.firstVariant.options.forEach(() => {
+                                      values.secondVariant.options.forEach(
+                                        () => {
+                                          combinations.push({
+                                            price: 0,
+                                            stock: 0,
+                                            sku: "",
+                                          });
+                                        }
+                                      );
+                                    });
+                                    setValues({
+                                      ...values,
+                                      secondVariant,
+                                      combinations,
+                                    });
+                                  }}
+                                >
+                                  <span>
+                                    <AiOutlinePlusCircle size="16px" />
+                                    Thêm phân loại hàng
+                                  </span>
+                                </AddVariantButton>
+                              </OptionContainer>
+                            </VariantPanelContainer>
+                          </VariantPanel>
+                        ) : (
+                          <AddVariantButton
+                            type="button"
+                            onClick={() => {
+                              setHasSecondVariant(true);
+                            }}
+                          >
+                            <span>
+                              <AiOutlinePlusCircle size="16px" />
+                              Thêm
+                            </span>
+                          </AddVariantButton>
+                        )}
+                        <label>Danh sách phân loại hàng</label>
+                        <Table>
+                          <TableHeader>
+                            <TableCell>
+                              <p>{values.firstVariant.name || "Tên"}</p>
+                            </TableCell>
+                            {hasSecondVariant && (
+                              <TableCell>
+                                <p>{values.secondVariant.name || "Tên"}</p>
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <p>Giá</p>
+                            </TableCell>
+                            <TableCell>
+                              <p>Kho hàng</p>
+                            </TableCell>
+                            <TableCell>
+                              <p>SKU phân loại</p>
+                            </TableCell>
+                          </TableHeader>
+                          <TableContent>
+                            <TableContentLeft
+                              hasSecondVariant={hasSecondVariant}
+                            >
+                              {values.firstVariant.options.map(
+                                (name1, index1) => (
+                                  <TableRow key={index1}>
+                                    <TableCell>
+                                      <p>{name1 || "Loại"}</p>
+                                    </TableCell>
+                                    {hasSecondVariant && (
+                                      <CellGroup>
+                                        {values.secondVariant.options.map(
+                                          (name2, index) => (
+                                            <TableCell key={index}>
+                                              <p>{name2 || "Loại"}</p>
+                                            </TableCell>
+                                          )
+                                        )}
+                                      </CellGroup>
+                                    )}
+                                  </TableRow>
+                                )
+                              )}
+                            </TableContentLeft>
+                            <TableContentRight>
+                              {values.combinations.map((name, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>
+                                    <Field
+                                      type="number"
+                                      name={`combinations.${index}.price`}
+                                      placeholder="Nhập vào"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Field
+                                      type="number"
+                                      name={`combinations.${index}.stock`}
+                                      placeholder="Nhập vào"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Field
+                                      type="text"
+                                      name={`combinations.${index}.sku`}
+                                      placeholder="Nhập vào"
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableContentRight>
+                          </TableContent>
+                        </Table>
+                      </>
+                    ) : (
+                      <>
+                        <label>Phân loại hàng</label>
                         <AddVariantButton
                           type="button"
                           onClick={() => {
-                            setHasSecondVariant(true);
+                            setHasVariant(true);
+                            setValues({
+                              ...values,
+                              stock: undefined,
+                              price: undefined,
+                              firstVariant: {
+                                name: "",
+                                options: [""],
+                              },
+                              combinations: [{ price: 0, stock: 0, sku: "" }],
+                            });
                           }}
                         >
                           <span>
                             <AiOutlinePlusCircle size="16px" />
-                            Thêm
+                            Thêm nhóm phân loại
                           </span>
                         </AddVariantButton>
-                      )}
-                      <label>Danh sách phân loại hàng</label>
-                      <Table>
-                        <TableHeader>
-                          <TableCell>
-                            <p>{values.firstVariant.name || "Tên"}</p>
-                          </TableCell>
-                          {hasSecondVariant && (
-                            <TableCell>
-                              <p>{values.secondVariant.name || "Tên"}</p>
-                            </TableCell>
+                        <label>* Giá</label>
+                        <InputArea>
+                          <Field
+                            type="number"
+                            name="price"
+                            placeholder="Nhập vào"
+                            style={{ width: "70%" }}
+                          />
+                          {errors.price && touched.price && (
+                            <ErrorMessage>{errors.price}</ErrorMessage>
                           )}
-                          <TableCell>
-                            <p>Giá</p>
-                          </TableCell>
-                          <TableCell>
-                            <p>Kho hàng</p>
-                          </TableCell>
-                          <TableCell>
-                            <p>SKU phân loại</p>
-                          </TableCell>
-                        </TableHeader>
-                        <TableContent>
-                          <TableContentLeft hasSecondVariant={hasSecondVariant}>
-                            {values.firstVariant.options.map(
-                              (name1, index1) => (
-                                <TableRow key={index1}>
-                                  <TableCell>
-                                    <p>{name1 || "Loại"}</p>
-                                  </TableCell>
-                                  {hasSecondVariant && (
-                                    <CellGroup>
-                                      {values.secondVariant.options.map(
-                                        (name2, index) => (
-                                          <TableCell key={index}>
-                                            <p>{name2 || "Loại"}</p>
-                                          </TableCell>
-                                        )
-                                      )}
-                                    </CellGroup>
-                                  )}
-                                </TableRow>
-                              )
-                            )}
-                          </TableContentLeft>
-                          <TableContentRight>
-                            {values.combinations.map((name, index) => (
-                              <TableRow key={index}>
-                                <TableCell>
-                                  <Field
-                                    type="number"
-                                    name={`combinations.${index}.price`}
-                                    placeholder="Nhập vào"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Field
-                                    type="number"
-                                    name={`combinations.${index}.stock`}
-                                    placeholder="Nhập vào"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Field
-                                    type="text"
-                                    name={`combinations.${index}.sku`}
-                                    placeholder="Nhập vào"
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableContentRight>
-                        </TableContent>
-                      </Table>
-                    </>
-                  ) : (
-                    <>
-                      <label>Phân loại hàng</label>
-                      <AddVariantButton
-                        type="button"
-                        onClick={() => {
-                          setHasVariant(true);
-                          setValues({
-                            ...values,
-                            stock: undefined,
-                            price: undefined,
-                            firstVariant: {
-                              name: "",
-                              options: [""],
-                            },
-                            combinations: [{ price: 0, stock: 0, sku: "" }],
-                          });
-                        }}
-                      >
-                        <span>
-                          <AiOutlinePlusCircle size="16px" />
-                          Thêm nhóm phân loại
-                        </span>
-                      </AddVariantButton>
-                      <label>* Giá</label>
-                      <InputArea>
-                        <Field
-                          type="number"
-                          name="price"
-                          placeholder="Nhập vào"
-                          style={{ width: "70%" }}
-                        />
-                        {errors.price && touched.price && (
-                          <ErrorMessage>{errors.price}</ErrorMessage>
-                        )}
-                      </InputArea>
-                      <label>* Kho hàng</label>
-                      <InputArea>
-                        <Field
-                          type="number"
-                          name="stock"
-                          placeholder="Nhập vào"
-                          style={{ width: "70%" }}
-                        />
-                        {errors.stock && touched.stock && (
-                          <ErrorMessage>{errors.stock}</ErrorMessage>
-                        )}
-                      </InputArea>
-                    </>
-                  )}
-                </BasicGridContainer>
-              </BoxContent>
-            </Box>
-            <Box>
-              <BoxHeader>
-                <h3>Vận chuyển</h3>
-              </BoxHeader>
-              <BoxContent>
-                <BasicGridContainer>
-                  <label>* Cân nặng (Sau khi đóng gói)</label>
-                  <InputArea>
-                    <Field
-                      type="number"
-                      name="weight"
-                      placeholder="Nhập vào"
-                      style={{ width: "70%" }}
-                    />
-                    {errors.weight && touched.weight && (
-                      <ErrorMessage>{errors.weight}</ErrorMessage>
+                        </InputArea>
+                        <label>* Kho hàng</label>
+                        <InputArea>
+                          <Field
+                            type="number"
+                            name="stock"
+                            placeholder="Nhập vào"
+                            style={{ width: "70%" }}
+                          />
+                          {errors.stock && touched.stock && (
+                            <ErrorMessage>{errors.stock}</ErrorMessage>
+                          )}
+                        </InputArea>
+                      </>
                     )}
-                  </InputArea>
-                  <label>Kích thước đóng gói</label>
-                  <div>
-                    <SizeRow>
-                      <Field type="number" name="width" placeholder="R" />
-                      <Field type="number" name="length" placeholder="D" />
-                      <Field type="number" name="height" placeholder="C" />
-                    </SizeRow>
-                  </div>
-                </BasicGridContainer>
-              </BoxContent>
-            </Box>
-            <Box>
-              <BoxHeader>
-                <h3>Thông tin khác</h3>
-              </BoxHeader>
-              <BoxContent>
-                <BasicGridContainer>
-                  <label>SKU sản phẩm</label>
-                  <Field
-                    type="text"
-                    name="sku"
-                    style={{ width: "50%" }}
-                    placeholder="-"
-                  />
-                </BasicGridContainer>
-              </BoxContent>
-            </Box>
-            <SaveButton type="submit">Lưu sản phẩm</SaveButton>
-          </Container>
-        </Form>
-      )}
-    </Formik>
+                  </BasicGridContainer>
+                </BoxContent>
+              </Box>
+              <Box>
+                <BoxHeader>
+                  <h3>Vận chuyển</h3>
+                </BoxHeader>
+                <BoxContent>
+                  <BasicGridContainer>
+                    <label>* Cân nặng (Sau khi đóng gói)</label>
+                    <InputArea>
+                      <Field
+                        type="number"
+                        name="weight"
+                        placeholder="Nhập vào"
+                        style={{ width: "70%" }}
+                      />
+                      {errors.weight && touched.weight && (
+                        <ErrorMessage>{errors.weight}</ErrorMessage>
+                      )}
+                    </InputArea>
+                    <label>Kích thước đóng gói</label>
+                    <div>
+                      <SizeRow>
+                        <Field type="number" name="width" placeholder="R" />
+                        <Field type="number" name="length" placeholder="D" />
+                        <Field type="number" name="height" placeholder="C" />
+                      </SizeRow>
+                    </div>
+                  </BasicGridContainer>
+                </BoxContent>
+              </Box>
+              <Box>
+                <BoxHeader>
+                  <h3>Thông tin khác</h3>
+                </BoxHeader>
+                <BoxContent>
+                  <BasicGridContainer>
+                    <label>SKU sản phẩm</label>
+                    <Field
+                      type="text"
+                      name="sku"
+                      style={{ width: "50%" }}
+                      placeholder="-"
+                    />
+                  </BasicGridContainer>
+                </BoxContent>
+              </Box>
+              <SaveButton type="submit">Lưu sản phẩm</SaveButton>
+            </Container>
+          </Form>
+        )}
+      </Formik>
+    </>
   ) : (
-    <Redirect to="/seller/product/category" />
+    <Redirect to="/seller/category" />
   );
 };
 

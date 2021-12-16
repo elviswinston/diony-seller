@@ -14,9 +14,26 @@ const addProducImages = (formData: FormData) => {
   });
 };
 
+const getProductSeller = (token: string) => {
+  return axios.get(API_URL + "GetProductSeller", {
+    headers: { Authorization: "Bearer " + token },
+  });
+};
+
+const getCategoryInfo = (productId: number) => {
+  return axios.get(API_URL + "GetCateLink/" + productId);
+};
+
+const getProductInfo = (productId: number) => {
+  return axios.get(API_URL + productId);
+};
+
 const ProductServices = {
   addProducImages,
   addProduct,
+  getProductSeller,
+  getCategoryInfo,
+  getProductInfo,
 };
 
 export default ProductServices;

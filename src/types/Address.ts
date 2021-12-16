@@ -3,7 +3,7 @@ export interface Address {
   phoneNumber: string;
   provinceId: number;
   districtId: number;
-  wardCode: number;
+  wardCode: string;
   provinceName: string;
   districtName: string;
   wardName: string;

@@ -16,7 +16,7 @@ export const SidebarData: SidebarItem[] = [
       },
       {
         title: "Thêm Sản Phẩm",
-        path: "/seller/product/category",
+        path: "/seller/category",
         icon: "",
       },
       {

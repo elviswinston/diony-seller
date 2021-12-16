@@ -25,7 +25,7 @@ const Content = styled.div`
 const LoginPage: React.FunctionComponent<IPage> = () => {
   return (
     <Container>
-      <Header />
+      <Header PageName="Login" />
       <Content>
         <LoginForm></LoginForm>
       </Content>

@@ -16,6 +16,42 @@ export interface Product {
   combinations: Combination[];
 }
 
+export interface ProductResponse {
+  name: string;
+  description: string;
+  categoryId: number;
+  weight: number;
+  length: number;
+  height: number;
+  width: number;
+  sku: string;
+  price?: number;
+  stock?: number;
+  variants: VariantResponse[];
+  combinations: CombinationResponse[];
+  coverImage: string;
+}
+
+interface VariantResponse {
+  id: number;
+  name: string;
+  options: OptionResponse[];
+}
+
+interface OptionResponse {
+  id: number;
+  name: string;
+}
+
+interface CombinationResponse {
+  id: number;
+  firstOptionId: number;
+  secondOptionId: number;
+  price: number;
+  stock: number;
+  sku: string;
+}
+
 interface Variant {
   name: string;
   options: string[];
@@ -45,6 +81,7 @@ export interface ProductState {
 export enum ProductActionTypes {
   SELECT_CATEGORY = "SELECT_CATEGORY",
   SET_CATEGORY_LINK = "SET_CATEGORY_LINK",
+  SET_UPDATE_PRODUCT = "SET_UPDATE_PRODUCT"
 }
 
 export interface ProductSelectCategoryAction {
@@ -57,6 +94,12 @@ export interface ProductSetCategoryLink {
   payload: string;
 }
 
+export interface ProductSetUpdate {
+  type: ProductActionTypes.SET_UPDATE_PRODUCT,
+  payload: ProductResponse
+}
+
 export type ProductAction =
   | ProductSelectCategoryAction
-  | ProductSetCategoryLink;
+  | ProductSetCategoryLink
+  | ProductSetUpdate;

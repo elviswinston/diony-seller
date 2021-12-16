@@ -5,8 +5,13 @@ const API_URL = "http://localhost:5000/api/Category/";
 const API_URL_SELECT_PROPERTY = "http://localhost:5000/api/SelectProperty/";
 const API_URL_TYPING_PROPERTY = "http://localhost:5000/api/TypingProperty/";
 
+interface MenuResponse {
+  categories: Category[];
+  maxDepth: number;
+}
+
 const getMenu = () => {
-  return axios.get<Category[]>(API_URL + "GetMenu");
+  return axios.get<MenuResponse>(API_URL + "GetMenu");
 };
 
 const getSelectProperties = (cateId: number) => {

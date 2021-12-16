@@ -28,6 +28,7 @@ const isSeller = () => {
   return false;
 };
 
+
 const AuthService = {
   login,
   isLogged,

@@ -120,7 +120,7 @@ const intialValues: Address = {
   phoneNumber: "",
   provinceId: 0,
   districtId: 0,
-  wardCode: 0,
+  wardCode: "",
   provinceName: "",
   districtName: "",
   wardName: "",

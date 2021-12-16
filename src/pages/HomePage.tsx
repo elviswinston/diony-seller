@@ -6,7 +6,7 @@ import { Header } from "../components/Header";
 import { Route } from "react-router-dom";
 import ProductListPage from "./ProductListPage";
 import CategoryPage from "./CategoryPage";
-import AddProductPage from "./AddProductPage";
+import ProductPage from "./ProductPage";
 
 const Container = styled.div`
   background-color: #f6f6f6;
@@ -26,13 +26,13 @@ const PageContainer = styled.div`
 const HomePage: React.FC = () => {
   return (
     <Container>
-      <Header />
-      <Route path="/seller/product/category" component={CategoryPage} />
-      <Route path="/seller/product/new" component={AddProductPage}/>
+      <Header PageName="Home" />
+      <Route path="/seller/category" component={CategoryPage} />
+      <Route exact path="/seller/product/:productId" component={ProductPage} />
       <Content>
         <Sidebar />
         <PageContainer>
-          <Route path="/seller/product/list/all" component={ProductListPage} />
+          <Route exact path="/seller/product/list/all" component={ProductListPage} />
         </PageContainer>
       </Content>
     </Container>

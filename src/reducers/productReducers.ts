@@ -9,7 +9,7 @@ const initalProductState: ProductState = {
   cateLink: "",
 };
 
-export const productRecuder = (
+export const productReducer = (
   state: ProductState = initalProductState,
   action: ProductAction
 ) => {

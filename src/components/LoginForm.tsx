@@ -117,7 +117,7 @@ export const LoginForm = () => {
 
   return (
     <Container>
-      {userInfo && <FullscreenLoading />}
+      {userInfo && <FullscreenLoading Type=""/>}
       <h1>Đăng nhập</h1>
       {error && <Alert>{error}</Alert>}
       <Formik
