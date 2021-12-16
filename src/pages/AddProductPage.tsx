@@ -538,6 +538,7 @@ const AddProductPage: React.FC = () => {
         validationSchema={AddProductSchema}
         validateOnChange={false}
         validateOnBlur={true}
+        enableReinitialize
       >
         {({ errors, values, setValues, setErrors, touched, setFieldValue }) => (
           <Form autoComplete="false">
