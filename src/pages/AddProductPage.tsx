@@ -351,8 +351,8 @@ const AddProductPage: React.FC = () => {
     },
     combinations: [],
     hasSecondVariant: false,
-    typingProperties: [{ id: 0, value: "", name: "" }],
-    selectProperties: [{ id: 0, valueIDs: [0], isRequired: false, name: "" }],
+    typingProperties: [],
+    selectProperties: [],
   });
 
   const [selectProps, setSelectProps] = useState<SelectProperty[]>([]);
