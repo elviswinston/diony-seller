@@ -11,7 +11,7 @@ interface MenuResponse {
 }
 
 const getMenu = () => {
-  return axios.get<MenuResponse>(API_URL + "GetMenu");
+  return axios.get<MenuResponse>(API_URL + "GetCategorySeller");
 };
 
 const getSelectProperties = (cateId: number) => {
