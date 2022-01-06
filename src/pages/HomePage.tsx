@@ -7,6 +7,8 @@ import { Route } from "react-router-dom";
 import ProductListPage from "./ProductListPage";
 import CategoryPage from "./CategoryPage";
 import ProductPage from "./ProductPage";
+import AddressPage from "./AddressPage";
+import OrderPage from "./OrderPage";
 
 const Container = styled.div`
   background-color: #f6f6f6;
@@ -32,7 +34,13 @@ const HomePage: React.FC = () => {
       <Content>
         <Sidebar />
         <PageContainer>
-          <Route exact path="/seller/product/list/all" component={ProductListPage} />
+          <Route
+            exact
+            path="/seller/product/list/all"
+            component={ProductListPage}
+          />
+          <Route exact path="/seller/setting/address" component={AddressPage} />
+          <Route exact path="/seller/order" component={OrderPage} />
         </PageContainer>
       </Content>
     </Container>

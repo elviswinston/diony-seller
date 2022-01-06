@@ -52,6 +52,15 @@ const useLocationForm = () => {
     });
   }, []);
 
+  const onSelectProvince = (value: number) => {
+    setState((state) => ({
+      ...state,
+      SelectedProvince: state.ProvinceOptions.find(
+        (option) => option.value === value
+      ),
+    }));
+  };
+
   const onSelectDistrict = (value: number) => {
     setState((state) => ({
       ...state,
@@ -82,7 +91,7 @@ const useLocationForm = () => {
         DistrictOptions: data,
         WardOptions: [],
         SelectedDistrict: undefined,
-        SelectedWard: undefined
+        SelectedWard: undefined,
       }));
     });
   };
@@ -104,7 +113,53 @@ const useLocationForm = () => {
     });
   };
 
-  return { state, fetchDistrict, fetchWard, onSelectDistrict, onSelectWard };
+  const updateAddress = (
+    provinceId: number,
+    districtId: number,
+    wardCode: string
+  ) => {
+    AddressService.getDistrict(provinceId).then((districtResponse) => {
+      const districts: Option[] = districtResponse.data.data
+        .filter((item: DistrictResponse) => item.Status === 1)
+        .map((item: DistrictResponse) => ({
+          value: item.DistrictID,
+          label: item.DistrictName,
+        }));
+
+      AddressService.getWard(districtId).then((wardResponse) => {
+        const wards: Option[] = wardResponse.data.data
+          .filter((item: WardResponse) => item.Status === 1)
+          .map((item: WardResponse) => ({
+            value: item.WardCode,
+            label: item.WardName,
+          }));
+        setState((state) => ({
+          ...state,
+          DistrictOptions: districts,
+          WardOptions: wards,
+          SelectedProvince: state.ProvinceOptions.find(
+            (province) => province.value === provinceId
+          ),
+          SelectedDistrict: districts.find(
+            (district) => district.value === districtId
+          ),
+          SelectedWard: wards.find(
+            (ward) => ward.value.toString() === wardCode
+          ),
+        }));
+      });
+    });
+  };
+
+  return {
+    state,
+    fetchDistrict,
+    fetchWard,
+    onSelectProvince,
+    onSelectDistrict,
+    onSelectWard,
+    updateAddress,
+  };
 };
 
 export default useLocationForm;

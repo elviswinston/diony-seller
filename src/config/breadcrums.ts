@@ -12,6 +12,10 @@ const breadcrums: Breadcrum[] = [
     path: "/seller/product/new",
     name: "Thêm 1 sản phẩm mới",
   },
+  {
+    path: "/seller/setting/address",
+    name: "Địa chi",
+  },
 ];
 
 export default breadcrums;

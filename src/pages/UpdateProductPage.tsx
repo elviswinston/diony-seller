@@ -14,6 +14,10 @@ import { Field, Form, Formik } from "formik";
 import ImageUpload from "../components/ImageUpload";
 import { Category, SelectProperty, TypingProperty } from "../types/Category";
 import Select from "react-select";
+import useLoading from "../hooks/useLoading";
+import { useHistory } from "react-router-dom";
+import FullscreenLoading from "../components/FullscreenLoading";
+import CategoryServices from "../services/category.services";
 
 const Container = styled.div`
   display: grid;
@@ -302,15 +306,9 @@ interface TypingProp {
   name: string;
 }
 
-interface Option {
-  id?: number;
-  name?: string;
-}
-
 interface Variant {
-  id?: number;
   name?: string;
-  options: Option[];
+  options: string[];
 }
 
 interface InitialValues {
@@ -325,7 +323,7 @@ interface InitialValues {
   sku: string;
   firstVariant: Variant;
   secondVariant: Variant;
-  combinations: { id?: number; price: number; stock: number; sku: string }[];
+  combinations: { price: number; stock: number; sku: string }[];
   hasSecondVariant: boolean;
   typingProperties: TypingProp[];
   selectProperties: SelectProp[];
@@ -347,20 +345,12 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
     width: 0,
     length: 0,
     sku: "",
-    firstVariant: {
-      id: 0,
-      name: "",
-      options: [],
-    },
-    secondVariant: {
-      id: 0,
-      name: "",
-      options: [],
-    },
+    firstVariant: { options: [] },
+    secondVariant: { options: [] },
     combinations: [],
     hasSecondVariant: false,
-    typingProperties: [{ id: 0, value: "", name: "" }],
-    selectProperties: [{ id: 0, valueIDs: [0], isRequired: false, name: "" }],
+    typingProperties: [],
+    selectProperties: [],
   });
 
   const [hasVariant, setHasVariant] = useState(false);
@@ -372,14 +362,61 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
   const [product, setProduct] = useState<ProductResponse>();
 
   useEffect(() => {
+    const createImage = (url: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener("load", () => resolve(image));
+        image.addEventListener("error", (error) => reject(error));
+        image.setAttribute("crossOrigin", "anonymous"); // needed to avoid cross-origin issues on CodeSandbox
+        image.src = url;
+      });
+
+    async function toFile(imageSrc: string) {
+      const image = await createImage(imageSrc);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      ctx?.drawImage(image, image.width, image.height);
+
+      return new Promise<File>((resolve) => {
+        canvas.toBlob((file) => {
+          file && resolve(new File([file], imageSrc));
+        }, "image/jpeg");
+      });
+    }
+
+    const fetchProperties = (categoryId: number) => {
+      CategoryServices.getSelectProperties(categoryId).then((response) => {
+        setSelectProps(response.data);
+        const props = response.data.map((item) => ({
+          id: item.id,
+          valueIDs: [],
+          isRequired: item.isRequired,
+          name: item.name,
+        }));
+        setInitialValues((previous) => ({
+          ...previous,
+          selectProperties: props,
+        }));
+      });
+
+      CategoryServices.getTypingProperties(categoryId).then((response) => {
+        setTypingProps(response.data);
+        const props = response.data.map((item) => ({
+          id: item.id,
+          value: "",
+          name: item.name,
+        }));
+        setInitialValues((previous) => ({
+          ...previous,
+          typingProperties: props,
+        }));
+      });
+    };
+
     const fetchProductInfo = () => {
-      ProductServices.getProductInfo(productId).then((response) => {
+      ProductServices.getProductInfo(productId).then(async (response) => {
         const data: ProductResponse = response.data;
-        if (data.variants.length > 0) {
-          setHasVariant(true);
-          data.variants.length === 2 && setHasSecondVariant(true);
-        }
-        setProduct(data);
         setInitialValues((previous) => ({
           ...previous,
           productName: data.name,
@@ -387,28 +424,38 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
           price: data.combinations.length > 0 ? 0 : data.price,
           stock: data.combinations.length > 0 ? 0 : data.stock,
           weight: data.weight,
-          heigth: data.height,
+          height: data.height,
           width: data.width,
           length: data.length,
           sku: data.sku,
           firstVariant:
             data.variants.length > 0
-              ? data.variants[0]
+              ? {
+                  name: data.variants[0].name,
+                  options: data.variants[0].options.map((o) => o.name),
+                }
               : {
-                  id: undefined,
-                  name: undefined,
                   options: [],
                 },
           secondVariant:
-            data.variants.length === 2
-              ? data.variants[1]
-              : {
-                  id: undefined,
-                  name: undefined,
-                  options: [],
-                },
+            data.variants.length > 1
+              ? {
+                  name: data.variants[1].name,
+                  options: data.variants[1].options.map((o) => o.name),
+                }
+              : { options: [] },
           combinations: data.combinations,
         }));
+        if (data.variants.length > 0) {
+          setHasVariant(true);
+          if (data.variants.length === 2) {
+            setHasSecondVariant(true);
+          }
+        }
+        setProduct(data);
+        var coverImage = await toFile(data.coverImage);
+        setImages((previous) => [...previous, { id: 0, file: coverImage }]);
+        fetchProperties(data.categoryId);
       });
     };
 
@@ -454,11 +501,9 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
         }),
         options: Yup.array()
           .of(
-            Yup.object().shape({
-              name: Yup.string().when("hasVariant", {
-                is: () => hasVariant === true,
-                then: Yup.string().required("Không được để trống ô"),
-              }),
+            Yup.string().when("hasVariant", {
+              is: () => hasVariant === true,
+              then: Yup.string().required("Không được để trống ô"),
             })
           )
           .test("unique", "", function (list) {
@@ -479,11 +524,9 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
         }),
         options: Yup.array()
           .of(
-            Yup.object().shape({
-              name: Yup.string().when("hasSecondVariant", {
-                is: () => hasSecondVariant === true,
-                then: Yup.string().required("Không được để trống ô"),
-              }),
+            Yup.string().when("hasVariant", {
+              is: () => hasVariant === true,
+              then: Yup.string().required("Không được để trống ô"),
             })
           )
           .test("unique", "", function (list) {
@@ -516,16 +559,60 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
             otherwise: Yup.array().of(Yup.number()),
           }),
         })
-      ),
+      )
     });
+
+  const { isLoading, onLoading, offLoading } = useLoading();
+  const history = useHistory();
 
   return (
     <>
-      {initialValues.productName && (
+      {isLoading && <FullscreenLoading Type="Overlay" />}
+      {product && (
         <Formik
           initialValues={initialValues}
           onSubmit={(values) => {
             console.log(values);
+            if (
+              images.length === 0 ||
+              images.findIndex((image) => image.id === 0) === -1
+            )
+              alert("Chưa chọn ảnh bìa");
+            else {
+              onLoading();
+              let formData = new FormData();
+              images.forEach((image) => {
+                image.id === 0
+                  ? formData.append("coverImage", image.file, image.file.name)
+                  : formData.append(
+                      "productImages",
+                      image.file,
+                      image.file.name
+                    );
+              });
+
+              formData.append(
+                "data",
+                JSON.stringify({
+                  ...values,
+                  id: product.id,
+                  name: values.productName,
+                  firstVariant: hasVariant ? values.firstVariant : null,
+                  secondVariant: hasSecondVariant ? values.secondVariant : null,
+                })
+              );
+
+              ProductServices.updateProduct(formData)
+                .then(() => {
+                  offLoading();
+                  history.push("/");
+                  alert("Cập nhật thành công");
+                })
+                .catch(() => {
+                  offLoading();
+                  alert("Lỗi api rùi");
+                });
+            }
           }}
           validationSchema={AddProductSchema}
           validateOnChange={false}
@@ -681,17 +768,17 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                 setHasSecondVariant(false);
                                 setValues({
                                   ...values,
-                                  firstVariant: {
-                                    options: [],
-                                  },
-                                  secondVariant: {
-                                    options: [],
-                                  },
+                                  firstVariant: { name: "", options: [] },
+                                  secondVariant: { name: "", options: [] },
                                   combinations: [],
                                   price: 0,
                                   stock: 0,
                                 });
-                                setErrors({ ...errors, firstVariant: {} });
+                                setErrors({
+                                  ...errors,
+                                  firstVariant: {},
+                                  secondVariant: {},
+                                });
                               }}
                               className="close-button"
                             />
@@ -726,14 +813,12 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                       <InputArea>
                                         <Field
                                           type="text"
-                                          name={`firstVariant.options.${index}.name`}
+                                          name={`firstVariant.options.${index}`}
                                           placeholder="Nhập phân loại hàng, ví dụ: trắng, đỏ"
-                                          values={item.name}
+                                          values={item}
                                         />
                                         {error && (
-                                          <ErrorMessage>
-                                            {error.name}
-                                          </ErrorMessage>
+                                          <ErrorMessage>{error}</ErrorMessage>
                                         )}
                                       </InputArea>
                                       <VariantPanelAction>
@@ -778,26 +863,7 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                   type="button"
                                   style={{ width: "100%" }}
                                   onClick={() => {
-                                    if (
-                                      product &&
-                                      product.variants.length > 0 &&
-                                      product.variants[0].options.length >
-                                        values.firstVariant.options.length
-                                    ) {
-                                      const index =
-                                        values.firstVariant.options.length;
-
-                                      values.firstVariant.options.push({
-                                        id: product.variants[0].options[index]
-                                          .id,
-                                        name: "",
-                                      });
-                                    } else {
-                                      values.firstVariant.options.push({
-                                        name: "",
-                                      });
-                                    }
-
+                                    values.firstVariant.options.push("");
                                     if (hasSecondVariant) {
                                       values.secondVariant.options.forEach(() =>
                                         values.combinations.push({
@@ -844,7 +910,6 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                   setValues({
                                     ...values,
                                     secondVariant: {
-                                      id: undefined,
                                       name: "",
                                       options: [],
                                     },
@@ -885,14 +950,12 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                         <InputArea>
                                           <Field
                                             type="text"
-                                            name={`secondVariant.options.${index}.name`}
+                                            name={`secondVariant.options.${index}`}
                                             placeholder="Nhập phân loại hàng, ví dụ: trắng, đỏ"
-                                            values={item.name}
+                                            values={item}
                                           />
                                           {error && (
-                                            <ErrorMessage>
-                                              {error.name}
-                                            </ErrorMessage>
+                                            <ErrorMessage>{error}</ErrorMessage>
                                           )}
                                         </InputArea>
                                         <VariantPanelAction>
@@ -946,54 +1009,11 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                     type="button"
                                     style={{ width: "100%" }}
                                     onClick={() => {
-                                      // const secondVariant =
-                                      //   values.secondVariant;
-                                      // secondVariant.options.push({
-                                      //   id: undefined,
-                                      //   name: "",
-                                      // });
-                                      // const combinations = values.combinations;
-                                      // combinations.splice(
-                                      //   0,
-                                      //   combinations.length
-                                      // );
-                                      // values.firstVariant.options.forEach(
-                                      //   () => {
-                                      //     values.secondVariant.options.forEach(
-                                      //       () => {
-                                      //         combinations.push({
-                                      //           price: 0,
-                                      //           stock: 0,
-                                      //           sku: "",
-                                      //         });
-                                      //       }
-                                      //     );
-                                      //   }
-                                      // );
-                                      // setValues({
-                                      //   ...values,
-                                      //   secondVariant,
-                                      //   combinations,
-                                      // });
-                                      if (
-                                        product &&
-                                        product.variants.length === 2 &&
-                                        product.variants[1].options.length >
-                                          values.secondVariant.options.length
-                                      ) {
-                                        var index =
-                                          values.secondVariant.options.length;
-                                        values.secondVariant.options.push({
-                                          id: product.variants[1].options[index]
-                                            .id,
-                                          name: "",
-                                        });
-                                      } else {
-                                        values.secondVariant.options.push({
-                                          name: "",
-                                        });
-                                      }
-                                      values.combinations.splice(0, values.combinations.length);
+                                      values.secondVariant.options.push("");
+                                      values.combinations.splice(
+                                        0,
+                                        values.combinations.length
+                                      );
                                       values.firstVariant.options.forEach(
                                         () => {
                                           values.secondVariant.options.forEach(
@@ -1024,22 +1044,10 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                               type="button"
                               onClick={() => {
                                 setHasSecondVariant(true);
-                                product && product.variants.length === 2
-                                  ? (values.secondVariant = {
-                                      id: product.variants[1].id,
-                                      name: "",
-                                      options: [
-                                        {
-                                          id: product.variants[1].options[0].id,
-                                          name: "",
-                                        },
-                                      ],
-                                    })
-                                  : (values.secondVariant = {
-                                      name: "",
-                                      options: [{ name: "" }],
-                                    });
-
+                                values.secondVariant = {
+                                  name: "",
+                                  options: [""],
+                                };
                                 setValues({ ...values });
                               }}
                             >
@@ -1078,14 +1086,14 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                   (item1, index1) => (
                                     <TableRow key={index1}>
                                       <TableCell>
-                                        <p>{item1.name || "Loại"}</p>
+                                        <p>{item1 || "Loại"}</p>
                                       </TableCell>
                                       {hasSecondVariant && (
                                         <CellGroup>
                                           {values.secondVariant.options.map(
                                             (item2, index) => (
                                               <TableCell key={index}>
-                                                <p>{item2.name || "Loại"}</p>
+                                                <p>{item2 || "Loại"}</p>
                                               </TableCell>
                                             )
                                           )}
@@ -1132,27 +1140,14 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                             type="button"
                             onClick={() => {
                               setHasVariant(true);
-                              const firstVariant =
-                                product && product.variants.length > 0
-                                  ? {
-                                      id: product.variants[0].id,
-                                      name: "",
-                                      options: [
-                                        {
-                                          id: product.variants[0].options[0].id,
-                                          name: "",
-                                        },
-                                      ],
-                                    }
-                                  : {
-                                      name: "",
-                                      options: [{ name: "" }],
-                                    };
                               setValues({
                                 ...values,
                                 stock: undefined,
                                 price: undefined,
-                                firstVariant: firstVariant,
+                                firstVariant: {
+                                  name: "",
+                                  options: [""],
+                                },
                                 combinations: [{ price: 0, stock: 0, sku: "" }],
                               });
                             }}

@@ -1,7 +1,27 @@
 import { SidebarItem } from "../types/SidebarItem";
-import { BsBagCheck, BsCaretDownFill, BsCaretUpFill } from "react-icons/bs";
+import {
+  BsBagCheck,
+  BsCaretDownFill,
+  BsCaretUpFill,
+  BsCartCheck,
+  BsGear
+} from "react-icons/bs";
 
 export const SidebarData: SidebarItem[] = [
+  {
+    title: "Quản Lý Đơn Hàng",
+    path: "/order",
+    icon: <BsCartCheck />,
+    iconOpened: <BsCaretUpFill />,
+    iconClosed: <BsCaretDownFill />,
+    subnav: [
+      {
+        title: "Tất cả",
+        path: "/seller/order",
+        icon: "",
+      },
+    ],
+  },
   {
     title: "Quản Lý Sản Phẩm",
     path: "/product",
@@ -21,7 +41,21 @@ export const SidebarData: SidebarItem[] = [
       },
       {
         title: "Sản Phẩm Vi Phạm",
-        path: "/product/list/all",
+        path: "/seller/product/list/all",
+        icon: "",
+      },
+    ],
+  },
+  {
+    title: "Thiết lập shop",
+    path: "/setting",
+    icon: <BsGear />,
+    iconOpened: <BsCaretUpFill />,
+    iconClosed: <BsCaretDownFill />,
+    subnav: [
+      {
+        title: "Địa chỉ",
+        path: "/seller/setting/address",
         icon: "",
       },
     ],
