@@ -38,12 +38,7 @@ export const SidebarData: SidebarItem[] = [
         title: "Thêm Sản Phẩm",
         path: "/seller/category",
         icon: "",
-      },
-      {
-        title: "Sản Phẩm Vi Phạm",
-        path: "/seller/product/list/all",
-        icon: "",
-      },
+      }
     ],
   },
   {

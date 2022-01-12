@@ -293,19 +293,6 @@ interface PageProps {
   productId: number;
 }
 
-interface SelectProp {
-  id: number;
-  valueIDs: number[];
-  isRequired: boolean;
-  name: string;
-}
-
-interface TypingProp {
-  id: number;
-  value: string;
-  name: string;
-}
-
 interface Variant {
   name?: string;
   options: string[];
@@ -325,13 +312,23 @@ interface InitialValues {
   secondVariant: Variant;
   combinations: { price: number; stock: number; sku: string }[];
   hasSecondVariant: boolean;
-  typingProperties: TypingProp[];
-  selectProperties: SelectProp[];
+  typingProperties: ProductTyping[];
+  selectProperties: ProductSelect[];
 }
 
 interface CategoryInfo {
   category: Category;
   cateLink: string;
+}
+
+interface ProductSelect {
+  id: number;
+  valueIDs: number[];
+}
+
+interface ProductTyping {
+  id: number;
+  value: string;
 }
 
 const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
@@ -385,32 +382,26 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
       });
     }
 
+    const fetchValues = (productId: number) => {
+      ProductServices.getValues(productId).then((response) => {
+        if (response.status === 200) {
+          setInitialValues((prev) => ({
+            ...prev,
+            selectProperties: response.data.selectValues,
+            typingProperties: response.data.typingValues,
+          }));
+          fetchProductInfo();
+        }
+      });
+    };
+
     const fetchProperties = (categoryId: number) => {
       CategoryServices.getSelectProperties(categoryId).then((response) => {
         setSelectProps(response.data);
-        const props = response.data.map((item) => ({
-          id: item.id,
-          valueIDs: [],
-          isRequired: item.isRequired,
-          name: item.name,
-        }));
-        setInitialValues((previous) => ({
-          ...previous,
-          selectProperties: props,
-        }));
       });
 
       CategoryServices.getTypingProperties(categoryId).then((response) => {
         setTypingProps(response.data);
-        const props = response.data.map((item) => ({
-          id: item.id,
-          value: "",
-          name: item.name,
-        }));
-        setInitialValues((previous) => ({
-          ...previous,
-          typingProperties: props,
-        }));
       });
     };
 
@@ -465,8 +456,8 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
         setCateLink(data.cateLink);
       });
     };
+    fetchValues(productId);
 
-    fetchProductInfo();
     fetchCategoryInfo();
   }, [productId]);
 
@@ -559,7 +550,7 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
             otherwise: Yup.array().of(Yup.number()),
           }),
         })
-      )
+      ),
     });
 
   const { isLoading, onLoading, offLoading } = useLoading();
@@ -573,6 +564,7 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
           initialValues={initialValues}
           onSubmit={(values) => {
             console.log(values);
+
             if (
               images.length === 0 ||
               images.findIndex((image) => image.id === 0) === -1
@@ -684,7 +676,7 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                       {selectProps.length > 0 &&
                         selectProps.map((item, index) => {
                           const error = errors.selectProperties;
-                          const test: SelectProp[] =
+                          const test: ProductSelect[] =
                             typeof error === "object" &&
                             JSON.parse(JSON.stringify(error));
 
@@ -706,22 +698,62 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                                     placeholder="Vui lòng chọn"
                                     isMulti={true}
                                     onChange={(e) => {
-                                      setFieldValue(
-                                        `selectProperties[${index}].valueIDs`,
-                                        e.map((item) => item.value)
-                                      );
+                                      if (e) {
+                                        var index =
+                                          values.selectProperties.findIndex(
+                                            (p) => p.id === item.id
+                                          );
+                                        if (index >= 0) {
+                                          values.selectProperties[
+                                            index
+                                          ].valueIDs = e.map((v) => v.value);
+                                          setValues(values);
+                                        } else {
+                                          values.selectProperties.push({
+                                            id: item.id,
+                                            valueIDs: e.map((v) => v.value),
+                                          });
+                                          setValues(values);
+                                        }
+                                      }
                                     }}
+                                    value={item.values.filter((v) =>
+                                      values.selectProperties
+                                        .find((p) => p.id === item.id)
+                                        ?.valueIDs.includes(v.value)
+                                    )}
                                   ></Select>
                                 ) : (
                                   <Select
                                     options={item.values}
                                     placeholder="Vui lòng chọn"
                                     onChange={(e) => {
-                                      setFieldValue(
-                                        `selectProperties[${index}].valueIDs[0]`,
-                                        e?.value
-                                      );
+                                      if (e) {
+                                        var index =
+                                          values.selectProperties.findIndex(
+                                            (p) => p.id === item.id
+                                          );
+                                        if (index >= 0) {
+                                          values.selectProperties[
+                                            index
+                                          ].valueIDs[0] = e.value;
+                                          setValues(values);
+                                        } else {
+                                          values.selectProperties.push({
+                                            id: item.id,
+                                            valueIDs: [e.value],
+                                          });
+                                          setValues(values);
+                                        }
+                                      }
                                     }}
+                                    value={item.values.filter(
+                                      (v) =>
+                                        v.value ===
+                                        values.selectProperties.find(
+                                          (p) => p.id === item.id
+                                        )?.valueIDs[0]
+                                    )}
                                   ></Select>
                                 )}
                               </InputArea>

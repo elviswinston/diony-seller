@@ -34,6 +34,10 @@ const updateProduct = (formData: FormData) => {
   });
 };
 
+const getValues = (productId: number) => {
+  return axios.get(API_URL + "/GetValues/" + productId);
+};
+
 const ProductServices = {
   addProducImages,
   addProduct,
@@ -41,6 +45,7 @@ const ProductServices = {
   getCategoryInfo,
   getProductInfo,
   updateProduct,
+  getValues,
 };
 
 export default ProductServices;
