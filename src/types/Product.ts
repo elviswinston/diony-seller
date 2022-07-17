@@ -17,7 +17,7 @@ export interface Product {
 }
 
 export interface ProductResponse {
-  id: string,
+  id: string;
   name: string;
   description: string;
   categoryId: number;
@@ -31,6 +31,7 @@ export interface ProductResponse {
   variants: VariantResponse[];
   combinations: CombinationResponse[];
   coverImage: string;
+  isDeleted: boolean;
 }
 
 interface VariantResponse {
@@ -82,7 +83,7 @@ export interface ProductState {
 export enum ProductActionTypes {
   SELECT_CATEGORY = "SELECT_CATEGORY",
   SET_CATEGORY_LINK = "SET_CATEGORY_LINK",
-  SET_UPDATE_PRODUCT = "SET_UPDATE_PRODUCT"
+  SET_UPDATE_PRODUCT = "SET_UPDATE_PRODUCT",
 }
 
 export interface ProductSelectCategoryAction {
@@ -96,8 +97,8 @@ export interface ProductSetCategoryLink {
 }
 
 export interface ProductSetUpdate {
-  type: ProductActionTypes.SET_UPDATE_PRODUCT,
-  payload: ProductResponse
+  type: ProductActionTypes.SET_UPDATE_PRODUCT;
+  payload: ProductResponse;
 }
 
 export type ProductAction =

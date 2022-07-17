@@ -276,15 +276,28 @@ interface Product {
   variants: Variant[];
 }
 
-const ProductTable: React.FC = () => {
+interface Props {
+  type: string;
+}
+
+const ProductTable: React.FC<Props> = ({ type }) => {
   const { userInfo } = useSelector((state: ReduxState) => state.userLogin);
   const [productList, setProductList] = useState<Product[]>([]);
   useEffect(() => {
-    userInfo &&
-      ProductServices.getProductSeller(userInfo.token).then((response) => {
-        if (response.status === 200) setProductList(response.data);
-      });
-  }, [userInfo]);
+    const fetchData = (token: string) => {
+      if (type === "HIDE") {
+        ProductServices.getHideProductSeller(token).then((response) => {
+          if (response.status === 200) setProductList(response.data);
+        });
+      } else {
+        ProductServices.getProductSeller(token).then((response) => {
+          if (response.status === 200) setProductList(response.data);
+        });
+      }
+    };
+
+    userInfo && fetchData(userInfo.token);
+  }, [userInfo, type]);
 
   return (
     <Container>

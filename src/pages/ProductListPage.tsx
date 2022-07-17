@@ -57,15 +57,19 @@ const ProductListPage: React.FC = () => {
   };
 
   return (
-    <Container>     
+    <Container>
       <ProductBox>
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={value} onChange={handleChange} aria-label="product tabs">
             <Tab label="Tất cả" {...a11yProps(0)} />
+            <Tab label="Đã ẩn" {...a11yProps(1)} />
           </Tabs>
         </Box>
         <TabPanel value={value} index={0}>
-          <ProductTable />
+          <ProductTable type="ALL" />
+        </TabPanel>
+        <TabPanel value={value} index={1}>
+          <ProductTable type="HIDE" />
         </TabPanel>
       </ProductBox>
     </Container>

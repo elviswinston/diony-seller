@@ -4,8 +4,10 @@ import {
   BsCaretDownFill,
   BsCaretUpFill,
   BsCartCheck,
-  BsGear
+  BsGear,
 } from "react-icons/bs";
+
+import { IoWalletOutline } from "react-icons/io5";
 
 export const SidebarData: SidebarItem[] = [
   {
@@ -38,7 +40,7 @@ export const SidebarData: SidebarItem[] = [
         title: "Thêm Sản Phẩm",
         path: "/seller/category",
         icon: "",
-      }
+      },
     ],
   },
   {
@@ -51,6 +53,20 @@ export const SidebarData: SidebarItem[] = [
       {
         title: "Địa chỉ",
         path: "/seller/setting/address",
+        icon: "",
+      },
+    ],
+  },
+  {
+    title: "Quản lý",
+    path: "/manage",
+    icon: <IoWalletOutline />,
+    iconOpened: <BsCaretUpFill />,
+    iconClosed: <BsCaretDownFill />,
+    subnav: [
+      {
+        title: "Ví tiền",
+        path: "/seller/manage/wallet",
         icon: "",
       },
     ],

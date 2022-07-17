@@ -9,6 +9,7 @@ import CategoryPage from "./CategoryPage";
 import ProductPage from "./ProductPage";
 import AddressPage from "./AddressPage";
 import OrderPage from "./OrderPage";
+import WalletPage from "./WalletPage";
 
 const Container = styled.div`
   background-color: #f6f6f6;
@@ -41,6 +42,7 @@ const HomePage: React.FC = () => {
           />
           <Route exact path="/seller/setting/address" component={AddressPage} />
           <Route exact path="/seller/order" component={OrderPage} />
+          <Route exact path="/seller/manage/wallet" component={WalletPage} />
         </PageContainer>
       </Content>
     </Container>

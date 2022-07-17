@@ -18,6 +18,7 @@ import config from "../config/config";
 import useLoading from "../hooks/useLoading";
 import FullscreenLoading from "../components/FullscreenLoading";
 import ProductServices from "../services/product.services";
+import { Alert, AlertColor, Snackbar } from "@mui/material";
 
 const Container = styled.div`
   display: grid;
@@ -363,6 +364,10 @@ const AddProductPage: React.FC = () => {
   const history = useHistory();
   const { isLoading, onLoading, offLoading } = useLoading();
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastSeverity, setToastSeverity] = useState<AlertColor>();
+
   useEffect(() => {
     const fetchProperties = (categoryId: number) => {
       CategoryServices.getSelectProperties(categoryId).then((response) => {
@@ -486,8 +491,33 @@ const AddProductPage: React.FC = () => {
     ),
   });
 
+  const handleClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setShowToast(false);
+  };
+
   return selectedCategory.id !== 0 ? (
     <>
+      <Snackbar
+        open={showToast}
+        autoHideDuration={4000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleClose}
+          severity={toastSeverity}
+          sx={{ width: "100%" }}
+        >
+          {toastMessage}
+        </Alert>
+      </Snackbar>
       {isLoading && <FullscreenLoading Type="Overlay" />}
       <Formik
         initialValues={initialValues}
@@ -527,11 +557,20 @@ const AddProductPage: React.FC = () => {
             ProductServices.addProduct(formData)
               .then(() => {
                 offLoading();
-                history.push("/");
+
+                setToastMessage("Tạo sản phẩm thành công");
+                setToastSeverity("success");
+                setShowToast(true);
+
+                setTimeout(() => {
+                  history.push("/");
+                }, 2000);
               })
               .catch(() => {
                 offLoading();
-                alert("Lỗi api rùi");
+                setToastMessage("Tạo sản phẩm thất bại, đã có lỗi xảy ra");
+                setToastSeverity("error");
+                setShowToast(true);
               });
           }
         }}

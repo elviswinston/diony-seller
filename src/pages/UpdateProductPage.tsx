@@ -18,6 +18,9 @@ import useLoading from "../hooks/useLoading";
 import { useHistory } from "react-router-dom";
 import FullscreenLoading from "../components/FullscreenLoading";
 import CategoryServices from "../services/category.services";
+import { Alert, AlertColor, Snackbar } from "@mui/material";
+import { ReduxState } from "../types/ReduxState";
+import { useSelector } from "react-redux";
 
 const Container = styled.div`
   display: grid;
@@ -289,6 +292,36 @@ const CellGroup = styled.div`
   flex: 1;
 `;
 
+const ActionContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: 10px;
+`;
+
+const HideButton = styled.button`
+  outline: none;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  background-color: #ccc;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-block;
+`;
+const UnhideButton = styled.button`
+  outline: none;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  background-color: #ccc;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-block;
+`;
+
 interface PageProps {
   productId: number;
 }
@@ -357,6 +390,12 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
   const [typingProps, setTypingProps] = useState<TypingProperty[]>([]);
   const [cateLink, setCateLink] = useState("");
   const [product, setProduct] = useState<ProductResponse>();
+
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastSeverity, setToastSeverity] = useState<AlertColor>();
+
+  const userInfo = useSelector((state: ReduxState) => state.userLogin.userInfo);
 
   useEffect(() => {
     const createImage = (url: string) =>
@@ -556,8 +595,89 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
   const { isLoading, onLoading, offLoading } = useLoading();
   const history = useHistory();
 
+  const handleClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setShowToast(false);
+  };
+
+  const hideProduct = () => {
+    onLoading();
+    ProductServices.hideProduct(productId, userInfo!.token)
+      .then((response) => {
+        offLoading();
+
+        if (response.status === 200) {
+          setToastMessage("Ẩn sản phẩm thành công");
+          setToastSeverity("success");
+          setShowToast(true);
+
+          setTimeout(() => {
+            history.push("/");
+          }, 2000);
+        } else {
+          setToastMessage("Ẩn sản phẩm thất bại");
+          setToastSeverity("error");
+          setShowToast(true);
+        }
+      })
+      .catch((error) => {
+        offLoading();
+        setToastMessage("Ẩn sản phẩm thất bại");
+        setToastSeverity("error");
+        setShowToast(true);
+      });
+  };
+
+  const unhideProduct = () => {
+    onLoading();
+    ProductServices.unhideProduct(productId, userInfo!.token)
+      .then((response) => {
+        offLoading();
+
+        if (response.status === 200) {
+          setToastMessage("Bỏ ẩn sản phẩm thành công");
+          setToastSeverity("success");
+          setShowToast(true);
+
+          setTimeout(() => {
+            history.push("/");
+          }, 2000);
+        } else {
+          setToastMessage("Bỏ ẩn sản phẩm thất bại");
+          setToastSeverity("error");
+          setShowToast(true);
+        }
+      })
+      .catch((error) => {
+        offLoading();
+        setToastMessage("Bỏ ẩn sản phẩm thất bại");
+        setToastSeverity("error");
+        setShowToast(true);
+      });
+  };
+
   return (
     <>
+      <Snackbar
+        open={showToast}
+        autoHideDuration={4000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleClose}
+          severity={toastSeverity}
+          sx={{ width: "100%" }}
+        >
+          {toastMessage}
+        </Alert>
+      </Snackbar>
       {isLoading && <FullscreenLoading Type="Overlay" />}
       {product && (
         <Formik
@@ -597,12 +717,21 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
               ProductServices.updateProduct(formData)
                 .then(() => {
                   offLoading();
-                  history.push("/");
-                  alert("Cập nhật thành công");
+                  setToastMessage("Cập nhật sản phẩm thành công");
+                  setToastSeverity("success");
+                  setShowToast(true);
+
+                  setTimeout(() => {
+                    history.push("/");
+                  }, 2000);
                 })
                 .catch(() => {
                   offLoading();
-                  alert("Lỗi api rùi");
+                  setToastMessage(
+                    "Cập nhật sản phẩm thất bại, đã có lỗi xảy ra"
+                  );
+                  setToastSeverity("error");
+                  setShowToast(true);
                 });
             }
           }}
@@ -1263,7 +1392,18 @@ const UpdateProductPage: React.FC<PageProps> = ({ productId }) => {
                     </BasicGridContainer>
                   </BoxContent>
                 </Box>
-                <SaveButton type="submit">Lưu sản phẩm</SaveButton>
+                <ActionContainer>
+                  <SaveButton type="submit">Lưu sản phẩm</SaveButton>
+                  {product.isDeleted ? (
+                    <UnhideButton type="button" onClick={() => unhideProduct()}>
+                      Bỏ ẩn sản phẩm
+                    </UnhideButton>
+                  ) : (
+                    <HideButton type="button" onClick={() => hideProduct()}>
+                      Ẩn sản phẩm
+                    </HideButton>
+                  )}
+                </ActionContainer>
               </Container>
             </Form>
           )}

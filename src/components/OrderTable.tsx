@@ -194,7 +194,7 @@ const OrderTable: React.FC<Props> = ({ status }) => {
       renderCell: (params: GridRenderCellParams<Item[], any, any>) => {
         return (
           <ProductContainer>
-            {params.value.map((item, index) => (
+            {params.value!.map((item, index) => (
               <InfoContainer key={index}>
                 <ImageBox>
                   <img alt={item.image} src={item.image} />
@@ -217,7 +217,7 @@ const OrderTable: React.FC<Props> = ({ status }) => {
       filterable: false,
       sortable: false,
       renderCell: (params: GridRenderCellParams<number, any, any>) => {
-        return <p>{params.value.toLocaleString()}</p>;
+        return <p>{params.value!.toLocaleString()}</p>;
       },
     },
     {
@@ -235,6 +235,12 @@ const OrderTable: React.FC<Props> = ({ status }) => {
             return <p>Chuẩn bị hàng</p>;
           case "TO_PICKUP":
             return <p>Chờ lấy hàng</p>;
+          case "SHIPPING":
+            return <p>Đang giao</p>;
+          case "SHIPPED":
+            return <p>Đã giao</p>;
+          case "CANCELLED":
+            return <p>Huỷ</p>;
           default:
             break;
         }

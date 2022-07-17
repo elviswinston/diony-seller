@@ -1,4 +1,5 @@
 import axios from "axios";
+import OrderSummaryResponse from "../types/Order";
 
 const API_URL = "http://localhost:5000/api/Order/";
 
@@ -18,9 +19,16 @@ const prepareOrder = (orderId: string, token: string, prepareDate: string) => {
   );
 };
 
+const getOrderSummary = (token: string) => {
+  return axios.get<OrderSummaryResponse>(API_URL + "GetOrderSummary", {
+    headers: { Authorization: "Bearer " + token },
+  });
+};
+
 const OrderService = {
   getOrderSeller,
   prepareOrder,
+  getOrderSummary,
 };
 
 export default OrderService;

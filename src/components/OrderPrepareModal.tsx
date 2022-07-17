@@ -110,7 +110,7 @@ const OrderPrepareModal: React.FC<Props> = ({ closeModal, orderId, token }) => {
                       OrderService.prepareOrder(
                         orderId,
                         token,
-                        prepareDate.toLocaleDateString("en-US")
+                        prepareDate.toLocaleDateString("en-US", { day: 'numeric' })+ "-"+ prepareDate.toLocaleDateString("en-US", { month: 'short' })+ "-" + prepareDate.toLocaleDateString("en-US", { year: 'numeric' })
                       ).then((response) => {
                         if (response.status === 200) {
                           alert("Chuẩn bị hàng thành công");
